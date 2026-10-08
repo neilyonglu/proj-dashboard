@@ -27,7 +27,11 @@ instance/app.db     SQLite DB (not in VCS); backups in instance/backups/, logs i
 .env                SECRET_KEY, DB_ADMIN_PASSWORD (both required)
 Dockerfile          python:3.12-slim image, non-root, waitress on :5001
 docker-compose.yml  build args UID/GID + bind mounts for instance/ and avatars/
-requirements.txt    pinned runtime deps
+pyproject.toml      uv application metadata and pinned direct dependencies
+uv.lock             cross-platform dependency lockfile
+.python-version     Python 3.12 for local uv runs
+requirements.txt    exported from uv.lock for Docker
+smoke_admin.py      temporary-DB login and personnel-entry smoke test
 ```
 
 ## Models (core/models.py)
@@ -132,7 +136,14 @@ Admin, session-gated (`admin.py`, `manage.py`):
   backup ever happened again until the next restart. Backs up to
   `instance/backups/`, keep `BACKUP_KEEP=10`. Paths come from
   `current_app.config['DB_FILE_PATH']` / `['DB_INSTANCE_DIR']`.
-- Deployment is Docker-only (Linux). There is no PyInstaller exe, no in-app
+- Local development: `uv sync --locked`, configure `.env` (including
+  `HOST=127.0.0.1`), then `uv run app.py`. Python 3.12 and runtime dependencies
+  are managed in `.venv`; no package build or custom launcher is needed. Local
+  data uses `instance/` and `static/avatars/`, both ignored by Git.
+- Dependency source: `pyproject.toml` and `uv.lock`. Export `requirements.txt`
+  with `uv export --locked --no-hashes --no-header --no-annotate --no-emit-project --output-file requirements.txt`
+  after dependency changes, so Docker and local uv runs use the same resolved versions.
+- Production deployment uses Docker (Linux). There is no PyInstaller exe, no in-app
   self-update and no `.bat` tooling — updating means `git pull` +
   `docker compose up -d --build`. `instance/` and `static/avatars/` are bind
   mounts, so rebuilding the image never touches the DB, backups, logs or

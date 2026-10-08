@@ -40,7 +40,10 @@ proj_dashboard/
 ├── app.py                 # 應用程式進入點（Flask 初始化、設定、啟動）
 ├── Dockerfile             # python:3.12-slim，非 root 執行，waitress 監聽 5001
 ├── docker-compose.yml     # build args UID/GID + instance/ 與 avatars/ bind mount
-├── requirements.txt       # 鎖版本的執行期相依套件
+├── pyproject.toml         # uv 專案與直接相依套件
+├── uv.lock                # 跨平台完整相依套件鎖檔
+├── .python-version        # 本機 Python 3.12
+├── requirements.txt       # 從 uv.lock 匯出，供 Docker 使用
 ├── .dockerignore
 ├── .env                   # 環境變數（需手動建立, 已被 .gitignore 排除）
 ├── .env.example           # .env 範本
@@ -62,9 +65,33 @@ proj_dashboard/
 └── templates/             # HTML 渲染模板
 ```
 
+## 本機執行（uv）
+
+先安裝 [uv](https://docs.astral.sh/uv/getting-started/installation/)。Python 固定使用 3.12；`uv sync` 會建立 `.venv`、安裝鎖定的套件，缺少 Python 時也會自動下載。
+
+```powershell
+uv sync --locked
+Copy-Item .env.example .env  # 僅首次建立，已有 .env 時請保留
+uv run python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+編輯 `.env`，將產生的值填入 `SECRET_KEY`，另設定自己的 `DB_ADMIN_PASSWORD`，並加入 `HOST=127.0.0.1`。接著執行：
+
+```powershell
+uv run app.py
+```
+
+開啟 <http://127.0.0.1:5001>；按 Ctrl+C 停止。Linux／macOS 首次複製設定可用 `cp .env.example .env`，其餘 uv 指令相同。本機資料庫、備份與日誌放在 `instance/`，大頭貼放在 `static/avatars/`，皆不提交 Git；Docker 的資料庫另放在 `data/instance/`。
+
+相依套件以 `pyproject.toml` 與 `uv.lock` 為準。修改相依套件後，匯出 Docker 使用的清單，三個檔案一起提交：
+
+```bash
+uv export --locked --no-hashes --no-header --no-annotate --no-emit-project --output-file requirements.txt
+```
+
 ## 🚀 部署 (Docker)
 
-本系統僅以 Docker 部署於 Linux，不提供 Windows exe 打包與 App 內自動更新。
+正式部署使用 Linux Docker；本機可使用 uv 執行（Windows／Linux／macOS）。不提供 Windows exe 打包與 App 內自動更新。
 
 ```bash
 git clone https://github.com/neilyonglu/proj_dashboard.git
@@ -141,7 +168,7 @@ docker image prune -f              # 清理重建後殘留的舊 image
 
 ## 驗證管理者入口
 
-使用現有執行期相依套件即可執行 `python smoke_admin.py`。測試使用暫存資料庫，檢查未登入、錯誤密碼、登入成功、首頁入口與工作表單，不讀寫正式資料。Docker 環境可執行：
+本機可執行 `uv run --locked smoke_admin.py`（已啟用虛擬環境時也可用 `python smoke_admin.py`）。測試使用暫存資料庫，檢查未登入、錯誤密碼、登入成功、首頁入口與工作表單，不讀寫正式資料。Docker 環境可執行：
 
 ```bash
 docker compose run --rm --no-deps dashboard python smoke_admin.py
@@ -149,13 +176,14 @@ docker compose run --rm --no-deps dashboard python smoke_admin.py
 
 ## 🚀 發布新版本
 
-1. 更新 `app.py` 裡的 `APP_VERSION`，並在下方「版本紀錄」補上 changelog。
+1. 同步更新 `app.py` 的 `APP_VERSION`、`pyproject.toml` 的版本與文件版本，執行 `uv lock`，並在下方「版本紀錄」補上 changelog。
 2. Commit、push 到 GitHub，視需要建立 tag（例如 `git tag v1.4.3 && git push origin v1.4.3`）。
 3. 伺服器上依照上方「更新版本」章節執行 `git pull` + `docker compose up -d --build` 套用新版。
 
 ## 📋 版本紀錄 (Changelog)
 
 ### v1.4.3
+- **uv 本機執行**：加入 Python 3.12 專案設定與跨平台鎖檔，可直接 `uv run app.py`；Docker 套件清單由 uv.lock 匯出。
 - **管理者入口移至右上角**：移除首頁資料庫管理卡片，改用「管理者登入」連結；密碼驗證成功後直接進入後台，首頁右上角改顯示「資料庫管理」，沿用既有 session 與後端權限檢查。
 - **人員名單集中於 DB 管理**：移除新增與編輯工作表單的「管理名單」連結，統一從「參與人員 → 管理參與人員」維護。
 - **文件同步**：更新 README、使用手冊與架構文件的入口流程、版本與部署連線說明。

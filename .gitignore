@@ -11,6 +11,7 @@ static/avatars/*
 !static/avatars/.gitkeep
 
 # Python
+.venv/
 __pycache__/
 *.pyc
 
