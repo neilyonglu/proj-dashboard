@@ -8,7 +8,8 @@ from flask import render_template, request, redirect, url_for, flash, session, s
 from openpyxl import Workbook, load_workbook
 from ..extensions import db
 from ..models import Project, Task, Personnel, Representative, Category
-from ..helpers import backup_database, ensure_task_columns, BACKUP_KEEP
+from ..helpers import (backup_database, ensure_task_columns, ensure_people_columns,
+                       parse_resigned_date, BACKUP_KEEP)
 from ..activity_log import log_action
 
 
@@ -106,6 +107,7 @@ def register(app):
             file.save(tmp_path)
             shutil.move(tmp_path, db_file_path)
             ensure_task_columns()
+            ensure_people_columns()
             log_action(request.remote_addr, '還原資料庫', f'file={file.filename}')
             flash('✅ 已從備份還原資料庫！（還原前的資料已另存為 pre_restore 備份）', 'success')
         except Exception as e:
@@ -176,14 +178,17 @@ def register(app):
                  t.night_hours if t.night_hours is not None else '',
                  t.description, t.notes or ''] for t in tasks])
 
-        _sheet('業務代表', ['名稱'], [[r.name] for r in reps])
-        _sheet('參與人員', ['系統代號', '顯示名稱'], [[p.name, p.display_name or ''] for p in personnel])
+        _sheet('業務代表', ['名稱', '離職日期'],
+               [[r.name, r.resigned_date.isoformat() if r.resigned_date else ''] for r in reps])
+        _sheet('參與人員', ['系統代號', '顯示名稱', '離職日期'],
+               [[p.name, p.display_name or '', p.resigned_date.isoformat() if p.resigned_date else '']
+                for p in personnel])
         _sheet('專案種類', ['種類名稱'], [[c.name] for c in categories])
 
         buf = io.BytesIO()
         wb.save(buf)
         buf.seek(0)
-        filename = f"proj_dashboard_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        filename = f"proj-dashboard-export-{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         return send_file(buf, as_attachment=True, download_name=filename,
                          mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
@@ -253,10 +258,16 @@ def register(app):
                 name = row.get('名稱', '').strip()
                 if not name:
                     continue
-                if Representative.query.filter_by(name=name).first():
-                    n_skip += 1
+                resigned_date = parse_resigned_date(row.get('離職日期'))
+                existing = Representative.query.filter_by(name=name).first()
+                if existing:
+                    if mode == 'overwrite' and '離職日期' in row:
+                        existing.resigned_date = resigned_date
+                        n_add += 1
+                    else:
+                        n_skip += 1
                 else:
-                    db.session.add(Representative(name=name))
+                    db.session.add(Representative(name=name, resigned_date=resigned_date))
                     n_add += 1
             db.session.commit()
             counts['業務代表'] = (n_add, n_skip)
@@ -282,15 +293,19 @@ def register(app):
                 if not name:
                     continue
                 display_name = row.get('顯示名稱', '').strip() or None
+                resigned_date = parse_resigned_date(row.get('離職日期'))
                 existing = Personnel.query.filter_by(name=name).first()
                 if existing:
                     if mode == 'overwrite':
                         existing.display_name = display_name
+                        if '離職日期' in row:
+                            existing.resigned_date = resigned_date
                         n_add += 1
                     else:
                         n_skip += 1
                 else:
-                    db.session.add(Personnel(name=name, display_name=display_name))
+                    db.session.add(Personnel(name=name, display_name=display_name,
+                                             resigned_date=resigned_date))
                     n_add += 1
             db.session.commit()
             counts['參與人員'] = (n_add, n_skip)
@@ -613,7 +628,8 @@ def register(app):
         if guard:
             return guard
         reps = Representative.query.order_by(Representative.name).all()
-        return _csv_response([[r.name] for r in reps], ['名稱'], 'representatives_export.csv')
+        return _csv_response([[r.name, r.resigned_date.isoformat() if r.resigned_date else '']
+                              for r in reps], ['名稱', '離職日期'], 'representatives_export.csv')
 
     @app.route('/api/import-reps', methods=['POST'])
     def import_reps():
@@ -627,20 +643,27 @@ def register(app):
             flash('請選擇 CSV 檔案', 'error')
             return redirect(url_for('manage_db'))
         try:
+            mode = request.form.get('import_mode', 'skip')
             imported = skipped = 0
             for row in _read_csv(file):
                 name = row.get('名稱', '').strip()
                 if not name:
                     continue
-                if Representative.query.filter_by(name=name).first():
-                    skipped += 1
+                resigned_date = parse_resigned_date(row.get('離職日期'))
+                existing = Representative.query.filter_by(name=name).first()
+                if existing:
+                    if mode == 'overwrite' and '離職日期' in row:
+                        existing.resigned_date = resigned_date
+                        imported += 1
+                    else:
+                        skipped += 1
                 else:
-                    db.session.add(Representative(name=name))
+                    db.session.add(Representative(name=name, resigned_date=resigned_date))
                     imported += 1
             db.session.commit()
             log_action(request.remote_addr, '匯入業務代表 CSV',
                        f'imported={imported}, skipped={skipped}')
-            flash(f'✅ 業務代表匯入完成！新增 {imported} 筆，略過重複 {skipped} 筆。', 'success')
+            flash(f'✅ 業務代表匯入完成！新增/更新 {imported} 筆，略過重複 {skipped} 筆。', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'匯入失敗：{str(e)}', 'error')
@@ -654,8 +677,9 @@ def register(app):
         if guard:
             return guard
         personnel = Personnel.query.order_by(Personnel.name).all()
-        return _csv_response([[p.name, p.display_name or ''] for p in personnel],
-                             ['系統代號', '顯示名稱'], 'personnel_export.csv')
+        return _csv_response([[p.name, p.display_name or '',
+                               p.resigned_date.isoformat() if p.resigned_date else ''] for p in personnel],
+                             ['系統代號', '顯示名稱', '離職日期'], 'personnel_export.csv')
 
     @app.route('/api/import-personnel', methods=['POST'])
     def import_personnel():
@@ -676,15 +700,19 @@ def register(app):
                 display_name = row.get('顯示名稱', '').strip() or None
                 if not name:
                     continue
+                resigned_date = parse_resigned_date(row.get('離職日期'))
                 existing = Personnel.query.filter_by(name=name).first()
                 if existing:
                     if mode == 'overwrite':
                         existing.display_name = display_name
+                        if '離職日期' in row:
+                            existing.resigned_date = resigned_date
                         imported += 1
                     else:
                         skipped += 1
                 else:
-                    db.session.add(Personnel(name=name, display_name=display_name))
+                    db.session.add(Personnel(name=name, display_name=display_name,
+                                             resigned_date=resigned_date))
                     imported += 1
             db.session.commit()
             action_label = '新增/更新' if mode == 'overwrite' else '新增'

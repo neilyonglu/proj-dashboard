@@ -32,18 +32,24 @@ def ensure_task_columns():
         conn.commit()
 
 
-def ensure_personnel_columns():
-    """Add new Personnel columns to an existing SQLite DB if they don't exist."""
+def ensure_people_columns():
+    """Add resignation dates to existing personnel and representative tables."""
     from sqlalchemy import text
     new_columns = {
         'resigned_date': 'DATE',
     }
     with db.engine.connect() as conn:
-        existing = {row[1] for row in conn.execute(text('PRAGMA table_info(personnel)'))}
-        for col, col_type in new_columns.items():
-            if col not in existing:
-                conn.execute(text(f'ALTER TABLE personnel ADD COLUMN {col} {col_type}'))
+        for table in ('personnel', 'representative'):
+            existing = {row[1] for row in conn.execute(text(f'PRAGMA table_info({table})'))}
+            for col, col_type in new_columns.items():
+                if col not in existing:
+                    conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {col} {col_type}'))
         conn.commit()
+
+
+def parse_resigned_date(raw):
+    value = (raw or '').strip().replace('/', '-')
+    return datetime.strptime(value, '%Y-%m-%d').date() if value else None
 
 
 def compute_back_url(default_endpoint='manage_db'):

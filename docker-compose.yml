@@ -1,3 +1,5 @@
+name: ${COMPOSE_PROJECT_NAME:?Set a unique COMPOSE_PROJECT_NAME in the server .env}
+
 services:
   dashboard:
     build:
@@ -5,14 +7,14 @@ services:
       args:
         UID: "${UID:-1000}"
         GID: "${GID:-1000}"
-    image: proj_dashboard:latest
-    container_name: proj_dashboard
     restart: unless-stopped
     env_file: .env
     environment:
       TZ: Asia/Taipei
+      HOST: 0.0.0.0
+      PORT: "5001"
     ports:
-      - "5001:5001"
+      - "${DASHBOARD_PORT:?Set an unused DASHBOARD_PORT in the server .env}:5001"
     volumes:
       - ./data/instance:/app/instance
       - ./data/avatars:/app/static/avatars

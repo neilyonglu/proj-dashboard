@@ -409,7 +409,7 @@
                 </a>
                 <div class="ml-auto flex items-center gap-2">
                     <button
-                        onclick="openImportModal('業務代表', '{{ url_for('import_reps') }}', false, '已存在的業務代表會自動略過，只新增沒有的。')"
+                        onclick="openImportModal('業務代表', '{{ url_for('import_reps') }}', true, '覆蓋更新可修改離職日期；舊檔未含離職日期欄時保留原值。')"
                         class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-[15px]">upload</span>匯入
                     </button>
@@ -426,6 +426,8 @@
                             <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[13px] font-semibold">
                                 <th class="px-4 py-3 border-r border-slate-200 w-[60px]">ID</th>
                                 <th class="px-4 py-3">名稱</th>
+                                <th class="px-4 py-3">狀態</th>
+                                <th class="px-4 py-3">離職日期</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-sm text-slate-700">
@@ -433,10 +435,12 @@
                             <tr class="hover:bg-slate-50 transition-colors searchable-row">
                                 <td class="px-4 py-3 text-slate-400 font-mono text-xs">{{ r.id }}</td>
                                 <td class="px-4 py-3 font-medium text-slate-900 search-field">{{ r.name }}</td>
+                                <td class="px-4 py-3 search-field {{ 'text-rose-600' if r.resigned_date else 'text-emerald-600' }}">{{ '已離職' if r.resigned_date else '在職' }}</td>
+                                <td class="px-4 py-3 search-field">{{ r.resigned_date.strftime('%Y/%m/%d') if r.resigned_date else '-' }}</td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="2" class="px-4 py-8 text-center text-slate-500">目前沒有業務代表資料。</td>
+                                <td colspan="4" class="px-4 py-8 text-center text-slate-500">目前沒有業務代表資料。</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -457,7 +461,7 @@
                 </a>
                 <div class="ml-auto flex items-center gap-2">
                     <button
-                        onclick="openImportModal('參與人員', '{{ url_for('import_personnel') }}', true, '覆蓋更新時會更新同代號人員的顯示名稱（大頭貼不受影響）。')"
+                        onclick="openImportModal('參與人員', '{{ url_for('import_personnel') }}', true, '覆蓋更新可修改顯示名稱與離職日期；舊檔未含離職日期欄時保留原值（大頭貼不受影響）。')"
                         class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-[15px]">upload</span>匯入
                     </button>
@@ -476,6 +480,8 @@
                                 <th class="px-4 py-3 border-r border-slate-200">大頭貼</th>
                                 <th class="px-4 py-3 border-r border-slate-200">系統代號</th>
                                 <th class="px-4 py-3">顯示名稱</th>
+                                <th class="px-4 py-3">狀態</th>
+                                <th class="px-4 py-3">離職日期</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-sm text-slate-700">
@@ -495,10 +501,12 @@
                                 </td>
                                 <td class="px-4 py-3 font-medium text-slate-900 search-field">{{ p.name }}</td>
                                 <td class="px-4 py-3 text-slate-500 search-field">{{ p.display_name or '-' }}</td>
+                                <td class="px-4 py-3 search-field {{ 'text-rose-600' if p.resigned_date else 'text-emerald-600' }}">{{ '已離職' if p.resigned_date else '在職' }}</td>
+                                <td class="px-4 py-3 search-field">{{ p.resigned_date.strftime('%Y/%m/%d') if p.resigned_date else '-' }}</td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="4" class="px-4 py-8 text-center text-slate-500">目前沒有人員資料。</td>
+                                <td colspan="6" class="px-4 py-8 text-center text-slate-500">目前沒有人員資料。</td>
                             </tr>
                             {% endfor %}
                         </tbody>

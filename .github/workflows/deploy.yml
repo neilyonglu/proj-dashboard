@@ -1,0 +1,78 @@
+name: Test and deploy dashboard
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.9"
+      - name: Check locked dependencies
+        run: |
+          test -z "$(git ls-files .env)" || { echo "::error::.env must not be committed."; exit 1; }
+          uv lock --check
+          uv export --locked --no-hashes --no-header --no-annotate --no-emit-project --output-file "$RUNNER_TEMP/requirements.txt"
+          diff -u requirements.txt "$RUNNER_TEMP/requirements.txt"
+      - name: Build Docker image
+        env:
+          IMAGE: dashboard-ci:${{ github.sha }}
+        run: docker build --tag "$IMAGE" .
+      - name: Test application inside the image
+        env:
+          IMAGE: dashboard-ci:${{ github.sha }}
+        run: |
+          docker run --rm --network none \
+            --mount "type=bind,src=$PWD/tests,dst=/tests,readonly" \
+            "$IMAGE" python -m unittest discover -s /tests -p test_app.py -v
+          docker run --rm "$IMAGE" test ! -f /app/.env
+      - name: Test deployment guards
+        run: uv run --locked python -m unittest discover -s tests -p test_deploy.py -v
+      - name: Check running container health
+        env:
+          IMAGE: dashboard-ci:${{ github.sha }}
+          CONTAINER: dashboard-ci-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          trap 'docker rm --force "$CONTAINER" >/dev/null 2>&1 || true' EXIT
+          docker run --detach --name "$CONTAINER" \
+            --env SECRET_KEY=ci-only --env DB_ADMIN_PASSWORD=ci-only "$IMAGE"
+          for _ in $(seq 1 60); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' "$CONTAINER")
+            if [ "$status" = healthy ]; then exit 0; fi
+            if [ "$status" = unhealthy ]; then break; fi
+            sleep 2
+          done
+          docker logs --tail 100 "$CONTAINER"
+          echo "::error::CI container did not become healthy within 120 seconds."
+          exit 1
+
+  deploy:
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, Linux, X64, proj-dashboard]
+    timeout-minutes: 20
+    concurrency:
+      group: ${{ github.repository }}-dashboard-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Deploy the tested commit
+        env:
+          DEPLOY_PATH: /home/genton/Proj/proj-dashboard
+          EXPECTED_SHA: ${{ github.sha }}
+          EXPECTED_REPOSITORY: ${{ github.repository }}
+        run: bash scripts/deploy.sh

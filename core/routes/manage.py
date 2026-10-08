@@ -4,7 +4,7 @@ from flask import render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 from ..extensions import db
 from ..models import Representative, Personnel, Category, Task, Project
-from ..helpers import compute_back_url, allowed_file
+from ..helpers import compute_back_url, allowed_file, parse_resigned_date
 from ..activity_log import log_action
 from .admin import _require_auth
 
@@ -39,10 +39,17 @@ def register(app):
                     if dup:
                         flash('該業務代表名稱已存在！', 'error')
                     else:
+                        if 'resigned_date' in request.form:
+                            try:
+                                rep.resigned_date = parse_resigned_date(request.form['resigned_date'])
+                            except ValueError:
+                                flash('離職日期格式錯誤，請使用 YYYY-MM-DD', 'error')
+                                return redirect(url_for('manage_reps'))
                         rep.name = rep_name
                         Project.query.filter_by(rep=old_name).update({'rep': rep_name})
                         db.session.commit()
-                        log_action(request.remote_addr, '編輯業務代表', f'{old_name} → {rep_name}')
+                        log_action(request.remote_addr, '編輯業務代表',
+                                   f'{old_name} → {rep_name}, resigned={rep.resigned_date}')
                         flash('✅ 業務代表已更新！', 'success')
             elif action == 'delete' and rep_id:
                 rep = Representative.query.get(rep_id)

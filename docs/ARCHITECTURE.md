@@ -1,6 +1,6 @@
-# ARCHITECTURE — proj_dashboard (reference)
+# ARCHITECTURE — proj-dashboard (reference)
 
-Extracted from the old CLAUDE.md on 2026-07-06; updated for v1.4.3 on 2026-10-08. This is a convenience map — the code
+Extracted from the old CLAUDE.md on 2026-07-06; updated for v1.4.4 on 2026-10-08. This is a convenience map — the code
 is the source of truth. If this file disagrees with the code, fix this file
 (see global `40-maintenance.md`).
 
@@ -31,15 +31,19 @@ pyproject.toml      uv application metadata and pinned direct dependencies
 uv.lock             cross-platform dependency lockfile
 .python-version     Python 3.12 for local uv runs
 requirements.txt    exported from uv.lock for Docker
-smoke_admin.py      temporary-DB login and personnel-entry smoke test
+AGENTS.md           agent change, teaching, version and release rules
+.github/workflows/deploy.yml  hosted CI followed by self-hosted deployment
+scripts/deploy.sh   exact-commit deployment and conflict guards
+tests/              stdlib application and Linux deployment checks
+docs/MAINTAINERS.md development, deployment and server migration instructions
 ```
 
 ## Models (core/models.py)
 
 | Model | Purpose |
 |---|---|
-| `Representative` | sales representative |
-| `Personnel` | employee (avatar path, display name) |
+| `Representative` | sales representative (nullable resigned_date) |
+| `Personnel` | employee (avatar path, display name, nullable resigned_date) |
 | `Category` | project category |
 | `Project` | project (dates, status, equipment, description) |
 | `Task` | work-hours record, FK to Project; person, work days, day/overtime/night hours |
@@ -124,6 +128,18 @@ Admin, session-gated (`admin.py`, `manage.py`):
   Task forms have no personnel-management link, even for admins; the entry is
   「參與人員 → 管理參與人員」 in `/manage-db`. The server-side guard enforces access
   independently of link visibility, including direct requests to admin URLs.
+- DB personnel and representative tables show all records, with active/resigned
+  status and resignation dates. `Representative.resigned_date` follows the same
+  NULL = active convention as Personnel; it is editable in `/manage-reps`.
+  This does not filter representative options in project forms.
+- `ensure_people_columns()` adds missing resignation columns to both tables at
+  startup and immediately after restoring an old SQLite backup. Existing rows
+  default to NULL; startup takes a backup before migration.
+- Personnel and representative CSV/Excel exports include `離職日期` (ISO date).
+  Imports accept YYYY-MM-DD or YYYY/MM/DD; overwrite mode updates a supplied
+  date, blank clears it, and a missing column preserves existing dates. Invalid
+  dates follow the import error/rollback path; representative form validation
+  rejects the update before changing its name or linked projects.
 - Avatar upload: PNG/JPG/GIF/WebP only, max 5 MB.
 - Admin auth: `session['db_admin_auth']`; password from `DB_ADMIN_PASSWORD`.
   `SECRET_KEY` and `DB_ADMIN_PASSWORD` have NO defaults — `app.py` raises at
@@ -136,20 +152,28 @@ Admin, session-gated (`admin.py`, `manage.py`):
   backup ever happened again until the next restart. Backs up to
   `instance/backups/`, keep `BACKUP_KEEP=10`. Paths come from
   `current_app.config['DB_FILE_PATH']` / `['DB_INSTANCE_DIR']`.
-- Local development: `uv sync --locked`, configure `.env` (including
-  `HOST=127.0.0.1`), then `uv run app.py`. Python 3.12 and runtime dependencies
+- Local development: `uv sync --locked`, set development environment variables
+  (including `HOST=127.0.0.1`), then `uv run app.py`. See `docs/MAINTAINERS.md`;
+  production `.env` stays on the server. Python 3.12 and runtime dependencies
   are managed in `.venv`; no package build or custom launcher is needed. Local
   data uses `instance/` and `static/avatars/`, both ignored by Git.
 - Dependency source: `pyproject.toml` and `uv.lock`. Export `requirements.txt`
   with `uv export --locked --no-hashes --no-header --no-annotate --no-emit-project --output-file requirements.txt`
   after dependency changes, so Docker and local uv runs use the same resolved versions.
 - Production deployment uses Docker (Linux). There is no PyInstaller exe, no in-app
-  self-update and no `.bat` tooling — updating means `git pull` +
-  `docker compose up -d --build`. `instance/` and `static/avatars/` are bind
+  self-update and no `.bat` tooling. The workflow draft tests the triggering main
+  commit on GitHub-hosted CI, then the dedicated self-hosted runner fast-forwards
+  server main to that exact SHA and runs `docker compose build` followed by
+  `docker compose up --detach --remove-orphans --wait --wait-timeout 120`.
+  It is not enabled until authorized push, runner setup and server migration.
+  `instance/` and `static/avatars/` are bind
   mounts, so rebuilding the image never touches the DB, backups, logs or
   avatars. The container runs as UID/GID passed at build time so those mounts
   stay writable and host-owned.
-- Compose publishes host port `5001` to container port `5001` on all interfaces.
+- Compose project name comes from `COMPOSE_PROJECT_NAME=proj-dashboard`;
+  `DASHBOARD_PORT=5001` publishes host port 5001 to container port 5001. The
+  renamed deployment root is `/home/genton/Proj/proj-dashboard`; migration of
+  the running old project is documented in `docs/MAINTAINERS.md`.
   For access only through an SSH tunnel, change the mapping to
   `127.0.0.1:5001:5001`; this restriction is not the default.
 - Timezone: the image sets `TZ=Asia/Taipei`; without it `datetime.now()` in

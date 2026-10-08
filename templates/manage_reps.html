@@ -16,7 +16,7 @@
                             href="{{ back_url }}">返回</a>
                     </div>
                     <h1 class="text-3xl font-bold leading-tight tracking-tight mt-4">管理業務代表</h1>
-                    <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">新增或移除業務代表名單。此名單將用於所有專案的建立與編輯選項中。</p>
+                    <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">新增、編輯或移除業務代表，可設定離職日期（在職請留空）。</p>
                 </div>
 
                 <!-- 顯示提示訊息 -->
@@ -46,14 +46,17 @@
                 </form>
 
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">現有機制代表名單</label>
+                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">現有業務代表名單</label>
                     <ul
                         class="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
                         {% for r in reps %}
                         <li class="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                             <!-- View mode -->
                             <div class="flex items-center justify-between p-4" id="rep-view-{{ r.id }}">
-                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ r.name }}</span>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ r.name }}</span>
+                                    <span class="text-xs {{ 'text-rose-600' if r.resigned_date else 'text-emerald-600' }}">{{ '已離職 ' + r.resigned_date.strftime('%Y/%m/%d') if r.resigned_date else '在職' }}</span>
+                                </div>
                                 <div class="flex items-center gap-1">
                                     <button type="button" onclick="toggleRepEdit({{ r.id }}, true)"
                                         class="text-blue-500 hover:bg-blue-50 p-2 rounded transition-colors" title="修改">
@@ -72,11 +75,16 @@
                             </div>
                             <!-- Edit mode -->
                             <form action="{{ url_for('manage_reps') }}" method="POST"
-                                class="hidden items-center gap-2 p-4 bg-blue-50/50 dark:bg-blue-900/10" id="rep-edit-{{ r.id }}">
+                                class="hidden flex-wrap items-center gap-2 p-4 bg-blue-50/50 dark:bg-blue-900/10" id="rep-edit-{{ r.id }}">
                                 <input type="hidden" name="action" value="edit" />
                                 <input type="hidden" name="rep_id" value="{{ r.id }}" />
                                 <input name="rep_name" type="text" value="{{ r.name }}" required
                                     class="form-input flex-1 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 h-9 px-3 text-sm shadow-sm" />
+                                <label class="text-xs text-slate-500">離職日期（在職請留空）
+                                    <input name="resigned_date" type="date"
+                                        value="{{ r.resigned_date.isoformat() if r.resigned_date else '' }}"
+                                        class="form-input rounded-lg border-slate-300 dark:border-slate-700 h-9 px-3 text-sm" />
+                                </label>
                                 <button type="submit"
                                     class="px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-sm">儲存</button>
                                 <button type="button" onclick="toggleRepEdit({{ r.id }}, false)"

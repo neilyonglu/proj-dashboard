@@ -2,7 +2,7 @@ import os
 
 from flask import Flask
 
-APP_VERSION = '1.4.3'
+APP_VERSION = '1.4.4'
 
 application_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -64,14 +64,14 @@ register_routes(app)
 def bootstrap():
     """Create/migrate the DB and seed defaults. Safe to call more than once."""
     from core.helpers import (backup_database, ensure_task_columns,
-                              ensure_personnel_columns, start_daily_backup_scheduler)
+                              ensure_people_columns, start_daily_backup_scheduler)
     from core.models import Representative, Category, Personnel, Task
 
     with app.app_context():
         backup_database(reason='startup', once_per_day=True)
         db.create_all()
         ensure_task_columns()
-        ensure_personnel_columns()
+        ensure_people_columns()
 
         if not Representative.query.first():
             for name in ["Leo/許仁豪", "Polly/林惠文", "Hannah/陳胤琦"]:

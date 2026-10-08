@@ -1,6 +1,6 @@
 .git
 .gitignore
-.env
+.env*
 .env.example
 instance/
 data/
@@ -13,3 +13,8 @@ __pycache__/
 *.db
 .codegraph/
 CLAUDE.md
+
+.github/
+scripts/
+tests/
+AGENTS.md
