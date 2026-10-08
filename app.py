@@ -2,7 +2,7 @@ import os
 
 from flask import Flask
 
-APP_VERSION = '1.4.1'
+APP_VERSION = '1.4.2'
 
 application_path = os.path.dirname(os.path.abspath(__file__))
 
