@@ -53,7 +53,10 @@ def register(app):
                 flash(f'發生錯誤：{str(e)}', 'error')
 
         projects = Project.query.order_by(Project.name).all()
-        personnel_list = Personnel.query.order_by(Personnel.name).all()
+        # 新增工作紀錄只列在職人員（resigned_date 為 NULL）
+        personnel_list = (Personnel.query
+                          .filter(Personnel.resigned_date.is_(None))
+                          .order_by(Personnel.name).all())
         prefill_person = request.args.get('person', '')
         return render_template('add_task.html', projects=projects, personnel_list=personnel_list,
                                prefill_person=prefill_person)
@@ -96,7 +99,12 @@ def register(app):
                 flash(f'更新失敗：{str(e)}', 'error')
 
         projects = Project.query.order_by(Project.name).all()
-        personnel_list = Personnel.query.order_by(Personnel.name).all()
+        # 只列在職人員，但保留這筆紀錄目前的人員（即使已離職），
+        # 否則 combobox 找不到對應選項，欄位會變空白而無法儲存
+        personnel_list = (Personnel.query
+                          .filter(db.or_(Personnel.resigned_date.is_(None),
+                                         Personnel.name == task.personnel))
+                          .order_by(Personnel.name).all())
         return render_template('edit_task.html', task=task, projects=projects,
                                personnel_list=personnel_list, redirect_to=redirect_to)
 

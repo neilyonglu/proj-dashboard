@@ -12,7 +12,7 @@ services:
     environment:
       TZ: Asia/Taipei
     ports:
-      - "127.0.0.1:5001:5001"
+      - "5001:5001"
     volumes:
       - ./data/instance:/app/instance
       - ./data/avatars:/app/static/avatars

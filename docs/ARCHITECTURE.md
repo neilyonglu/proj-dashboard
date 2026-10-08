@@ -96,7 +96,9 @@ Admin, session-gated (`admin.py`, `manage.py`):
   own status field.
 - `Personnel.resigned_date` (nullable `Date`) marks former employees; `NULL` =
   active. `/employee-case`'s personnel dropdown filters to active only
-  (`core/routes/main.py`), but a resigned person is still reachable by direct
+  (`core/routes/main.py`), and so does `/add-task`; `/edit-task/<id>` lists active
+  personnel plus the task's current person (even if resigned) so the combobox
+  still resolves its value (`core/routes/tasks.py`). A resigned person is still reachable by direct
   link (e.g. from the timeline's 離職 badge) since that lookup isn't filtered.
 - CSV import auto-detects UTF-8 / UTF-8-BOM / BIG5 (Excel compatibility); import
   modes are `skip` (skip duplicates) or `overwrite`.
@@ -106,6 +108,11 @@ Admin, session-gated (`admin.py`, `manage.py`):
   categories first, then personnel, then projects (auto-creates any missing
   rep/category, same as `import_db`), then tasks last since each task row
   resolves its project by name.
+- `/manage-personnel`, `/manage-reps`, `/manage-categories` are admin-gated
+  (`_require_auth()` from `admin.py`, redirects to `/manage-db-login`). The
+  「管理名單／管理種類」links on the add/edit project and task forms are wrapped in
+  `{% if session.get('db_admin_auth') %}` so normal users never see them; the
+  server-side guard is what actually enforces it.
 - Avatar upload: PNG/JPG/GIF/WebP only, max 5 MB.
 - Admin auth: `session['db_admin_auth']`; password from `DB_ADMIN_PASSWORD`.
   `SECRET_KEY` and `DB_ADMIN_PASSWORD` have NO defaults — `app.py` raises at

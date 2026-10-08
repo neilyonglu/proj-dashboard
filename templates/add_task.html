@@ -42,10 +42,12 @@
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">參與人員 <span
                                         class="text-red-500">*</span></span>
+                                {% if session.get('db_admin_auth') %}
                                 <a href="{{ url_for('manage_personnel') }}"
                                     class="text-xs text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[14px]">settings</span>管理名單
                                 </a>
+                                {% endif %}
                             </div>
                             <div class="relative" data-combobox data-required>
                                 <input type="hidden" name="personnel" value="{{ prefill_person }}">
@@ -53,7 +55,7 @@
                                     placeholder="輸入關鍵字篩選或點選參與人員" autocomplete="off">
                                 <ul class="combo-list hidden">
                                     {% for p in personnel_list %}
-                                    <li class="combo-option" data-value="{{ p.name }}" data-label="{{ p.name }}">{{ p.name }}{% if p.resigned_date %} <span class="text-rose-500 text-xs">已辭職 {{ p.resigned_date.strftime('%Y/%m/%d') }}</span>{% endif %}</li>
+                                    <li class="combo-option" data-value="{{ p.name }}" data-label="{{ p.name }}">{{ p.name }}</li>
                                     {% endfor %}
                                 </ul>
                             </div>

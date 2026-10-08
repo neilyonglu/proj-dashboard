@@ -6,12 +6,17 @@ from ..extensions import db
 from ..models import Representative, Personnel, Category, Task, Project
 from ..helpers import compute_back_url, allowed_file
 from ..activity_log import log_action
+from .admin import _require_auth
 
 
 def register(app):
 
     @app.route('/manage-reps', methods=['GET', 'POST'])
     def manage_reps():
+        # 名單管理僅限已輸入 DB 管理密碼的管理者
+        guard = _require_auth()
+        if guard:
+            return guard
         if request.method == 'POST':
             action = request.form.get('action')
             rep_id = request.form.get('rep_id')
@@ -55,6 +60,10 @@ def register(app):
 
     @app.route('/manage-personnel', methods=['GET', 'POST'])
     def manage_personnel():
+        # 名單管理僅限已輸入 DB 管理密碼的管理者
+        guard = _require_auth()
+        if guard:
+            return guard
         if request.method == 'POST':
             action = request.form.get('action')
             p_id = request.form.get('id')
@@ -128,6 +137,10 @@ def register(app):
 
     @app.route('/manage-categories', methods=['GET', 'POST'])
     def manage_categories():
+        # 名單管理僅限已輸入 DB 管理密碼的管理者
+        guard = _require_auth()
+        if guard:
+            return guard
         if request.method == 'POST':
             action = request.form.get('action')
             cat_id = request.form.get('cat_id')

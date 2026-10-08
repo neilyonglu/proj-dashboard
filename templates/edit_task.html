@@ -42,10 +42,12 @@
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">參與人員 <span
                                         class="text-red-500">*</span></span>
+                                {% if session.get('db_admin_auth') %}
                                 <a href="{{ url_for('manage_personnel') }}"
                                     class="text-xs text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[14px]">settings</span>管理名單
                                 </a>
+                                {% endif %}
                             </div>
                             <div class="relative" data-combobox data-required>
                                 <input type="hidden" name="personnel" value="{{ task.personnel }}">
@@ -167,4 +169,3 @@
     </div>
 </div>
 {% endblock %}
-
