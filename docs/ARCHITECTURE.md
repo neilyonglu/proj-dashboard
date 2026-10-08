@@ -1,13 +1,13 @@
 # ARCHITECTURE — proj_dashboard (reference)
 
-Extracted from the old CLAUDE.md on 2026-07-06. This is a convenience map — the code
+Extracted from the old CLAUDE.md on 2026-07-06; updated for v1.4.3 on 2026-10-08. This is a convenience map — the code
 is the source of truth. If this file disagrees with the code, fix this file
 (see global `40-maintenance.md`).
 
 ## Directory layout
 
 ```
-app.py              entry point (Flask init, config, startup; ~80 lines)
+app.py              entry point (Flask init, config, startup, APP_VERSION)
 core/
   extensions.py       db = SQLAlchemy()  (avoids circular imports)
   models.py           DB models
@@ -20,7 +20,7 @@ core/
     tasks.py          task (work-hours) CRUD
     admin.py          admin login, backup API, CSV export/import
     manage.py         personnel / representative / category management
-templates/          Jinja2 templates (base.html = shared navbar layout)
+templates/          Jinja2 templates (base.html = shared document, styles and scripts)
 static/
   css/style.css, js/main.js, js/tailwind-config.js, avatars/
 instance/app.db     SQLite DB (not in VCS); backups in instance/backups/, logs in instance/logs/
@@ -108,11 +108,18 @@ Admin, session-gated (`admin.py`, `manage.py`):
   categories first, then personnel, then projects (auto-creates any missing
   rep/category, same as `import_db`), then tasks last since each task row
   resolves its project by name.
+- Dashboard: four public feature cards. The top-right link shows 「管理者登入」
+  when logged out and 「資料庫管理」 when authenticated; there is no DB card.
+  `POST /manage-db-login` validates the configured password, sets
+  `session['db_admin_auth'] = True`, and redirects directly to `/manage-db`.
+  A wrong password redirects back to login without granting access.
 - `/manage-personnel`, `/manage-reps`, `/manage-categories` are admin-gated
   (`_require_auth()` from `admin.py`, redirects to `/manage-db-login`). The
-  「管理名單／管理種類」links on the add/edit project and task forms are wrapped in
-  `{% if session.get('db_admin_auth') %}` so normal users never see them; the
-  server-side guard is what actually enforces it.
+  「管理名單／管理種類」links on the add/edit project forms are wrapped in
+  `{% if session.get('db_admin_auth') %}` so normal users never see them.
+  Task forms have no personnel-management link, even for admins; the entry is
+  「參與人員 → 管理參與人員」 in `/manage-db`. The server-side guard enforces access
+  independently of link visibility, including direct requests to admin URLs.
 - Avatar upload: PNG/JPG/GIF/WebP only, max 5 MB.
 - Admin auth: `session['db_admin_auth']`; password from `DB_ADMIN_PASSWORD`.
   `SECRET_KEY` and `DB_ADMIN_PASSWORD` have NO defaults — `app.py` raises at
@@ -131,6 +138,9 @@ Admin, session-gated (`admin.py`, `manage.py`):
   mounts, so rebuilding the image never touches the DB, backups, logs or
   avatars. The container runs as UID/GID passed at build time so those mounts
   stay writable and host-owned.
+- Compose publishes host port `5001` to container port `5001` on all interfaces.
+  For access only through an SSH tunnel, change the mapping to
+  `127.0.0.1:5001:5001`; this restriction is not the default.
 - Timezone: the image sets `TZ=Asia/Taipei`; without it `datetime.now()` in
   backup filenames and `instance/logs/` would be UTC (8 hours off).
 - `PYTHONUNBUFFERED=1` is required for `docker logs` to show the app's `print()`
