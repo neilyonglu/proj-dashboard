@@ -2,6 +2,8 @@ name: ${COMPOSE_PROJECT_NAME:?Set a unique COMPOSE_PROJECT_NAME in the server .e
 
 services:
   dashboard:
+    image: proj-dashboard
+    container_name: proj-dashboard
     build:
       context: .
       args:
@@ -23,3 +25,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/', timeout=4).close()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
