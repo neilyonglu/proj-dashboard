@@ -3,51 +3,41 @@
 {% block title %}修改專案 - 專案管理系統{% endblock %}
 
 {% block content %}
-<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="relative flex h-auto flex-1 w-full flex-col group/design-root overflow-x-hidden">
     <div class="layout-container flex h-full grow flex-col">
         <main class="flex-1 flex justify-center py-8 sm:py-12 px-4 sm:px-6">
             <div
-                class="w-full max-w-[800px] bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 sm:p-10">
+                class="panel w-full max-w-[800px] p-6 sm:p-10">
                 <div class="mb-8">
                     <div class="flex items-center gap-2 mb-2">
-                        <a class="text-sm text-slate-500 dark:text-slate-400 hover:text-primary transition-colors font-medium"
+                        <a class="text-sm text-ink-muted hover:text-primary transition-colors font-medium"
                             href="{{ url_for('proj_timeline') }}"><span
                                 class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-sm">arrow_back</span>
                             返回專案時間軸</a>
                     </div>
-                    <h1 class="text-3xl font-bold leading-tight tracking-tight mt-4">修改專案紀錄</h1>
-                    <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">請依照專案總表格式修改以下資訊。</p>
+                    <h1 class="text-2xl font-semibold leading-tight tracking-tight mt-4 text-ink">修改專案紀錄</h1>
+                    <p class="text-ink-muted mt-2 text-sm">請依照專案總表格式修改以下資訊。</p>
                 </div>
 
                 <form class="flex flex-col gap-6" method="POST" action="{{ url_for('edit_project', id=project.id) }}">
-                    <!-- 顯示提示訊息 -->
-                    {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                    {% for category, message in messages %}
-                    <div
-                        class="p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-700 border border-green-200{% else %}bg-red-100 text-red-700 border border-red-200{% endif %}">
-                        {{ message }}
-                    </div>
-                    {% endfor %}
-                    {% endif %}
-                    {% endwith %}
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div class="flex flex-col gap-2">
-                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">專案名稱 <span
+                            <label class="text-sm font-medium text-ink">專案名稱 <span
                                     class="text-red-500">*</span></label>
                             <input name="name" type="text" value="{{ project.name }}"
-                                class="form-input w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 h-12 px-4 shadow-sm"
+                                class="input"
                                 placeholder="例如：騰創_新店鼎實唯我" required />
+                            <span class="text-xs text-ink-muted">例：客戶簡稱_廠區地點</span>
                         </div>
                         <div class="flex flex-col gap-2">
-                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">狀態</label>
+                            <label class="text-sm font-medium text-ink">狀態</label>
                             <select name="status"
-                                class="form-input w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 h-12 px-4 shadow-sm">
-                                <option value="進行中" {% if project.status=='進行中' %}selected{% endif %}>進行中</option>
-                                <option value="等待中" {% if project.status=='等待中' %}selected{% endif %}>等待中</option>
-                                <option value="暫緩中" {% if project.status=='暫緩中' %}selected{% endif %}>暫緩中</option>
-                                <option value="已結案" {% if project.status=='已結案' %}selected{% endif %}>已結案</option>
+                                class="input">
+                                <option value="進行中" {% if project.status=='進行中' %}selected{% endif %}>🟡 進行中</option>
+                                <option value="等待中" {% if project.status=='等待中' %}selected{% endif %}>🟠 等待中</option>
+                                <option value="暫緩中" {% if project.status=='暫緩中' %}selected{% endif %}>⚪ 暫緩中</option>
+                                <option value="已結案" {% if project.status=='已結案' %}selected{% endif %}>🟢 已結案</option>
                             </select>
                         </div>
                     </div>
@@ -55,22 +45,22 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div class="flex flex-col gap-2">
                             <div class="flex justify-between items-center">
-                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">業務代表 <span
+                                <label class="text-sm font-medium text-ink">業務代表 <span
                                         class="text-red-500">*</span></label>
                                 {% if session.get('db_admin_auth') %}
                                 <a href="{{ url_for('manage_reps') }}"
-                                    class="text-xs text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1">
+                                    class="text-xs text-primary hover:underline transition-colors flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[14px]">settings</span>管理名單
                                 </a>
                                 {% endif %}
                             </div>
-                            <div class="relative w-full text-slate-900 dark:text-slate-100">
+                            <div class="relative w-full text-ink">
                                 {% set default_reps = reps | map(attribute='name') | list %}
                                 {% set active_rep = project.rep if project.rep else '' %}
                                 {% set is_other = active_rep and active_rep not in default_reps %}
 
                                 <select id="rep_select" onchange="handleRepChange(this)"
-                                    class="form-input w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 h-12 px-4 shadow-sm"
+                                    class="input"
                                     required>
                                     <option value="" disabled hidden {% if not active_rep %}selected{% endif %}>選擇業務...
                                     </option>
@@ -81,25 +71,26 @@
                                     <option value="other" {% if is_other %}selected{% endif %}>-- 新增人員... --</option>
                                 </select>
                                 <input id="rep_custom" type="text" value="{{ active_rep if is_other else '' }}"
-                                    class="{% if not is_other %}hidden{% endif %} mt-2 form-input w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 h-12 px-4 shadow-sm"
+                                    class="{% if not is_other %}hidden{% endif %} mt-2 input"
                                     placeholder="請輸入新人員名稱 (例如: Will/王小明)" {% if is_other %}required{% endif %} />
                                 <!-- 隱藏的實際輸入框，用來提交給後端 -->
+                                <p id="rep_new_hint" class="{% if not is_other %}hidden{% endif %} text-xs text-ink-muted mt-1">儲存時會自動新增到業務代表名單</p>
                                 <input type="hidden" id="rep_hidden" name="rep" value="{{ active_rep }}" />
                             </div>
                         </div>
                         <div class="flex flex-col gap-2">
                             <div class="flex justify-between items-center">
-                                <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">種類 <span
+                                <label class="text-sm font-medium text-ink">種類 <span
                                         class="text-red-500">*</span></label>
                                 {% if session.get('db_admin_auth') %}
                                 <a href="{{ url_for('manage_categories') }}"
-                                    class="text-xs text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1">
+                                    class="text-xs text-primary hover:underline transition-colors flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[14px]">settings</span>管理種類
                                 </a>
                                 {% endif %}
                             </div>
                             <select name="category" required
-                                class="form-input w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 h-12 px-4 shadow-sm">
+                                class="input">
                                 <option value="" disabled hidden {% if not project.category %}selected{% endif %}>
                                     選擇種類...</option>
                                 {% for cat in categories %}
@@ -112,50 +103,50 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div class="flex flex-col gap-2">
-                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">設備 (選填)</label>
+                            <label class="text-sm font-medium text-ink">設備 (選填)</label>
                             <input name="equipment" type="text"
                                 value="{{ project.equipment if project.equipment else '' }}"
-                                class="form-input w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 h-12 px-4 shadow-sm"
+                                class="input"
                                 placeholder="輸入相關設備..." />
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div class="flex flex-col gap-2">
-                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">開始日期 <span
+                            <label class="text-sm font-medium text-ink">開始日期 <span
                                     class="text-red-500">*</span></label>
                             <input name="start_date" type="date"
                                 value="{{ project.start_date.strftime('%Y-%m-%d') if project.start_date else '' }}"
-                                class="form-input w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 h-12 px-4 shadow-sm"
+                                class="input"
                                 required />
                         </div>
                         <div class="flex flex-col gap-2">
-                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">結束日期 (選填)</label>
+                            <label class="text-sm font-medium text-ink">結束日期 (選填)</label>
                             <input name="end_date" type="date"
                                 value="{{ project.end_date.strftime('%Y-%m-%d') if project.end_date else '' }}"
-                                class="form-input w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 h-12 px-4 shadow-sm" />
+                                class="input" />
                         </div>
                     </div>
 
                     <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">內容敘述</label>
+                        <label class="text-sm font-medium text-ink">內容敘述</label>
                         <textarea name="description"
-                            class="form-input w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 min-h-[100px] p-4 shadow-sm"
+                            class="input h-auto min-h-[100px] py-2"
                             placeholder="例如：RP 0.5W 1800 中華沒訊號...">{{ project.description if project.description else '' }}</textarea>
                     </div>
 
                     <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">備註</label>
+                        <label class="text-sm font-medium text-ink">備註</label>
                         <textarea name="notes"
-                            class="form-input w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 min-h-[120px] p-4 shadow-sm"
+                            class="input h-auto min-h-[120px] py-2"
                             placeholder="輸入會議紀錄或進度備註...">{{ project.notes if project.notes else '' }}</textarea>
                     </div>
 
-                    <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-4">
+                    <div class="mt-8 pt-6 border-t border-line flex justify-end gap-3">
                         <a href="{{ url_for('proj_timeline') }}"
-                            class="px-6 py-2.5 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-center">取消</a>
+                            class="btn btn-secondary">取消</a>
                         <button type="submit"
-                            class="px-8 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 flex items-center gap-2 shadow-sm">
+                            class="btn btn-primary">
                             <span class="material-symbols-outlined text-sm">save</span> 儲存修改
                         </button>
                     </div>
@@ -171,10 +162,12 @@
 
         if (select.value === 'other') {
             customInput.classList.remove('hidden');
+            document.getElementById('rep_new_hint').classList.remove('hidden');
             customInput.required = true;
             hiddenInput.value = customInput.value;
         } else {
             customInput.classList.add('hidden');
+            document.getElementById('rep_new_hint').classList.add('hidden');
             customInput.required = false;
             hiddenInput.value = select.value;
         }

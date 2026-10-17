@@ -6,6 +6,7 @@ from datetime import datetime
 
 from flask import render_template, request, redirect, url_for, flash, session, send_file, Response
 from openpyxl import Workbook, load_workbook
+from sqlalchemy.orm import selectinload
 from ..extensions import db
 from ..models import Project, Task, Personnel, Representative, Category
 from ..helpers import (backup_database, ensure_task_columns, ensure_people_columns,
@@ -41,7 +42,7 @@ def register(app):
     def manage_db():
         if not session.get('db_admin_auth'):
             return redirect(url_for('manage_db_login'))
-        projects = Project.query.order_by(Project.id.desc()).all()
+        projects = Project.query.options(selectinload(Project.tasks)).order_by(Project.id.desc()).all()
         tasks = Task.query.order_by(Task.id.desc()).all()
         reps = Representative.query.order_by(Representative.name).all()
         personnel_list = Personnel.query.order_by(Personnel.name).all()

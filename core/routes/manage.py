@@ -2,6 +2,7 @@ import os
 
 from flask import render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
+from sqlalchemy import func
 from ..extensions import db
 from ..models import Representative, Personnel, Category, Task, Project
 from ..helpers import compute_back_url, allowed_file, parse_resigned_date
@@ -24,7 +25,12 @@ def register(app):
 
             if action == 'add' and rep_name:
                 if not Representative.query.filter_by(name=rep_name).first():
-                    db.session.add(Representative(name=rep_name))
+                    try:
+                        resigned = parse_resigned_date(request.form.get('resigned_date'))
+                    except ValueError:
+                        flash('離職日期格式錯誤，請使用 YYYY-MM-DD', 'error')
+                        return redirect(url_for('manage_reps'))
+                    db.session.add(Representative(name=rep_name, resigned_date=resigned))
                     db.session.commit()
                     log_action(request.remote_addr, '新增業務代表', rep_name)
                     flash('✅ 業務代表已新增！', 'success')
@@ -63,7 +69,8 @@ def register(app):
             return redirect(url_for('manage_reps'))
 
         reps = Representative.query.order_by(Representative.name).all()
-        return render_template('manage_reps.html', reps=reps, back_url=compute_back_url('add_proj'))
+        counts = dict(db.session.query(Project.rep, func.count(Project.id)).group_by(Project.rep).all())
+        return render_template('manage_reps.html', reps=reps, counts=counts, back_url=compute_back_url('add_proj'))
 
     @app.route('/manage-personnel', methods=['GET', 'POST'])
     def manage_personnel():
@@ -139,7 +146,8 @@ def register(app):
             return redirect(url_for('manage_personnel'))
 
         personnel_list = Personnel.query.order_by(Personnel.name).all()
-        return render_template('manage_personnel.html', personnel_list=personnel_list,
+        counts = dict(db.session.query(Task.personnel, func.count(Task.id)).group_by(Task.personnel).all())
+        return render_template('manage_personnel.html', personnel_list=personnel_list, counts=counts,
                                back_url=compute_back_url('manage_db'))
 
     @app.route('/manage-categories', methods=['GET', 'POST'])
@@ -187,5 +195,6 @@ def register(app):
             return redirect(url_for('manage_categories'))
 
         categories = Category.query.order_by(Category.name).all()
-        return render_template('manage_categories.html', categories=categories,
+        counts = dict(db.session.query(Project.category, func.count(Project.id)).group_by(Project.category).all())
+        return render_template('manage_categories.html', categories=categories, counts=counts,
                                back_url=compute_back_url('manage_db'))

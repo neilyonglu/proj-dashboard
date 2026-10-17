@@ -152,3 +152,186 @@ function setupComboboxFormValidation() {
         });
     });
 }
+
+// =============================================
+// Theme toggle (light -> dark -> system). Initial class is applied by the
+// inline script in base.html <head>; this only wires the header button.
+// =============================================
+(function () {
+    const MODES = ['light', 'dark', 'system'];
+    const ICONS = { light: 'light_mode', dark: 'dark_mode', system: 'brightness_auto' };
+    const LABELS = { light: '淺色', dark: '深色', system: '跟隨系統' };
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function currentMode() {
+        const m = document.documentElement.getAttribute('data-theme-mode');
+        return MODES.includes(m) ? m : 'dark';
+    }
+    function apply(mode) {
+        const dark = mode === 'dark' || (mode === 'system' && mq.matches);
+        document.documentElement.classList.toggle('dark', dark);
+        document.documentElement.setAttribute('data-theme-mode', mode);
+        document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+            const icon = btn.querySelector('.material-symbols-outlined');
+            if (icon && icon.textContent !== ICONS[mode]) {
+                icon.textContent = ICONS[mode];
+                icon.classList.remove('icon-swap');
+                void icon.offsetWidth; // restart the animation
+                icon.classList.add('icon-swap');
+            }
+            btn.title = '外觀：' + LABELS[mode] + '（點擊切換）';
+            btn.setAttribute('aria-label', '外觀：' + LABELS[mode] + '，點擊切換');
+        });
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        apply(currentMode());
+        document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const next = MODES[(MODES.indexOf(currentMode()) + 1) % MODES.length];
+                try { localStorage.setItem('theme', next); } catch (e) { }
+                apply(next);
+            });
+        });
+    });
+    const onSystemChange = () => { if (currentMode() === 'system') apply('system'); };
+    if (mq.addEventListener) mq.addEventListener('change', onSystemChange);
+})();
+
+// =============================================
+// Flash messages: success auto-dismisses, errors stay until closed.
+// =============================================
+document.addEventListener('DOMContentLoaded', () => {
+    function dismiss(el) {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-6px)';
+        setTimeout(() => {
+            const parent = el.parentElement;
+            el.remove();
+            if (parent && parent.id === 'flash-container' && !parent.children.length) parent.remove();
+        }, 500);
+    }
+    document.querySelectorAll('[data-flash-close]').forEach(btn => {
+        btn.addEventListener('click', () => dismiss(btn.closest('.flash-msg')));
+    });
+    document.querySelectorAll('.flash-msg[data-autodismiss]').forEach(el => {
+        setTimeout(() => dismiss(el), 4000);
+    });
+});
+
+// =============================================
+// Shared confirm dialog (<dialog id="confirm-dialog"> from _confirm.html)
+//   confirmDialog(message, {title, confirmText}) -> Promise<boolean>
+//   <form data-confirm="..."> / <a data-confirm="..."> are handled automatically.
+// Esc, backdrop click and the 取消 button all resolve false; focus starts on 取消.
+// =============================================
+function confirmDialog(message, opts) {
+    opts = opts || {};
+    return new Promise(resolve => {
+        const dlg = document.getElementById('confirm-dialog');
+        if (!dlg || typeof dlg.showModal !== 'function' || dlg.open) {
+            resolve(false); // fail closed: never delete without an explicit OK
+            return;
+        }
+        dlg.querySelector('#confirm-title').textContent = opts.title || '確認刪除';
+        dlg.querySelector('#confirm-message').textContent = message || '';
+        dlg.querySelector('#confirm-ok').textContent = opts.confirmText || '確定刪除';
+        dlg.returnValue = 'cancel';
+
+        const onClick = (e) => { if (e.target === dlg) dlg.close('cancel'); }; // backdrop click
+        dlg.addEventListener('click', onClick);
+        dlg.addEventListener('close', () => {
+            dlg.removeEventListener('click', onClick);
+            resolve(dlg.returnValue === 'ok');
+        }, { once: true });
+
+        dlg.showModal();
+        dlg.querySelector('#confirm-cancel').focus();
+    });
+}
+window.confirmDialog = confirmDialog;
+
+document.addEventListener('submit', (e) => {
+    const form = e.target;
+    if (!(form instanceof HTMLFormElement) || !form.dataset.confirm) return;
+    if (form.dataset.confirmed === '1') { delete form.dataset.confirmed; return; }
+    e.preventDefault();
+    const submitter = e.submitter;
+    confirmDialog(form.dataset.confirm).then(ok => {
+        if (!ok) return;
+        form.dataset.confirmed = '1';
+        if (form.requestSubmit) form.requestSubmit(submitter || undefined); else form.submit();
+    });
+}, true);
+
+// rows: array of arrays. Quotes every cell; a leading = + - @ tab CR gets a ' prefix (CSV formula injection).
+function downloadCsv(filename, rows) {
+    const q = v => '"' + String(v).replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""') + '"';
+    const blob = new Blob(['﻿' + rows.map(r => r.map(q).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+window.downloadCsv = downloadCsv;
+
+// Substring-filter list rows by data-search; extraTest(row) may veto. Toggles #<noMatchId> when nothing shows.
+function filterRows(input, rowSelector, noMatchId, extraTest) {
+    const q = input.value.trim().toLowerCase();
+    let shown = 0;
+    document.querySelectorAll(rowSelector).forEach(row => {
+        const ok = row.dataset.search.includes(q) && (!extraTest || extraTest(row));
+        row.style.display = ok ? '' : 'none';
+        if (ok) shown++;
+    });
+    document.getElementById(noMatchId).classList.toggle('hidden', shown > 0 || !document.querySelector(rowSelector));
+}
+window.filterRows = filterRows;
+
+// Hours total + character counter, driven by data attributes (add/edit task forms).
+document.addEventListener('DOMContentLoaded', () => {
+    const total = document.querySelector('[data-hours-total]');
+    if (!total) return;
+    const f = total.closest('form'), inputs = f.querySelectorAll('[data-hours]');
+    const upd = () => {
+        let t = 0;
+        inputs.forEach(i => { t += parseFloat(i.value) || 0; });
+        total.textContent = +t.toFixed(2);
+        f.querySelectorAll('[data-char-count]').forEach(c => {
+            c.textContent = document.getElementById(c.dataset.charCount).value.length;
+        });
+    };
+    f.addEventListener('input', upd);
+    upd();
+});
+
+// =============================================
+// Motion helpers: shake invalid fields, sliding tab indicator.
+// =============================================
+document.addEventListener('invalid', (e) => {
+    const el = e.target;
+    el.classList.remove('shake');
+    void el.offsetWidth; // restart the animation
+    el.classList.add('shake');
+    el.addEventListener('animationend', () => el.classList.remove('shake'), { once: true });
+}, true);
+
+// <div data-tabs> with children marked aria-selected="true" when active.
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-tabs]').forEach(bar => {
+        const bar_ind = document.createElement('span');
+        bar_ind.className = 'tab-indicator';
+        bar_ind.setAttribute('aria-hidden', 'true');
+        bar.appendChild(bar_ind);
+        const place = () => {
+            const active = bar.querySelector('[aria-selected="true"]');
+            bar_ind.style.opacity = active ? '1' : '0';
+            if (!active) return;
+            bar_ind.style.width = active.offsetWidth + 'px';
+            bar_ind.style.transform = `translateX(${active.offsetLeft}px)`;
+        };
+        place();
+        new MutationObserver(place).observe(bar, { attributes: true, subtree: true, attributeFilter: ['aria-selected'] });
+        window.addEventListener('resize', place);
+    });
+});

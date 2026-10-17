@@ -4,28 +4,28 @@
 
 {% block content %}
 {% set PIE_COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316','#84cc16','#ec4899','#6366f1'] %}
-<div class="layout-container flex min-h-screen grow flex-col bg-slate-50">
+<div class="layout-container flex grow flex-col bg-surface-muted">
 
     <!-- Header -->
-    <div class="flex items-center justify-between px-6 py-3 border-b border-slate-200 bg-white shrink-0">
+    <div class="flex items-center justify-between px-6 py-3 border-b border-line bg-surface shrink-0">
         <div class="flex items-center gap-3">
             <a href="{{ url_for('proj_timeline') }}"
-               class="flex items-center gap-1 text-slate-400 hover:text-primary transition-colors"
+               class="flex items-center gap-1 text-ink-muted hover:text-primary transition-colors"
                title="返回專案表">
                 <span class="material-symbols-outlined text-[20px]">arrow_back</span>
             </a>
             <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-[22px] text-primary">folder_open</span>
-                <h2 class="text-slate-900 text-lg font-bold leading-tight">{{ proj.name }}</h2>
+                <h2 class="text-ink text-lg font-bold leading-tight">{{ proj.name }}</h2>
             </div>
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ url_for('proj_timeline', keyword=proj.name, tab='timeline') }}"
-               class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:text-primary hover:bg-slate-50 border border-slate-200 transition-colors">
+               class="btn btn-secondary">
                 <span class="material-symbols-outlined text-[16px]">timeline</span> 時間軸
             </a>
             <a href="{{ url_for('edit_project', id=proj.id) }}"
-               class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 transition-colors">
+               class="btn btn-secondary">
                 <span class="material-symbols-outlined text-[16px]">edit</span> 編輯
             </a>
         </div>
@@ -37,29 +37,29 @@
             <!-- Status strip -->
             <div class="flex flex-wrap items-center gap-3">
                 {% if proj.status == '進行中' %}
-                <span class="px-3 py-1 bg-amber-100 text-amber-800 rounded-full font-semibold text-sm">進行中</span>
+                <span class="px-2 py-0.5 bg-status-active-bg text-status-active-fg rounded-sm font-medium text-sm">進行中</span>
                 {% elif proj.status == '暫緩中' %}
-                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-semibold text-sm">暫緩中</span>
+                <span class="px-2 py-0.5 bg-status-paused-bg text-status-paused-fg rounded-sm font-medium text-sm">暫緩中</span>
                 {% elif proj.status == '等待中' %}
-                <span class="px-3 py-1 bg-pink-100 text-pink-800 rounded-full font-semibold text-sm">等待中</span>
+                <span class="px-2 py-0.5 bg-status-waiting-bg text-status-waiting-fg rounded-sm font-medium text-sm">等待中</span>
                 {% elif proj.status == '已結案' %}
-                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full font-semibold text-sm">已結案</span>
+                <span class="px-2 py-0.5 bg-status-closed-bg text-status-closed-fg rounded-sm font-medium text-sm">已結案</span>
                 {% else %}
-                <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full font-semibold text-sm">{{ proj.status }}</span>
+                <span class="px-2 py-0.5 bg-status-closed-bg text-status-closed-fg rounded-sm font-medium text-sm">{{ proj.status }}</span>
                 {% endif %}
-                <span class="flex items-center gap-1 text-sm text-slate-500">
+                <span class="flex items-center gap-1 text-sm text-ink-muted">
                     <span class="material-symbols-outlined text-[14px]">calendar_month</span>
                     {{ proj.start_date.strftime('%Y/%m/%d') }}
                     {% if proj.end_date %} — {{ proj.end_date.strftime('%Y/%m/%d') }}{% else %} — 進行中{% endif %}
                 </span>
-                <span class="flex items-center gap-1 text-sm text-slate-400">
+                <span class="flex items-center gap-1 text-sm text-ink-muted">
                     <span class="material-symbols-outlined text-[14px]">person</span> {{ proj.rep }}
                 </span>
-                <span class="flex items-center gap-1 text-sm text-slate-400">
+                <span class="flex items-center gap-1 text-sm text-ink-muted">
                     <span class="material-symbols-outlined text-[14px]">label</span> {{ proj.category }}
                 </span>
                 {% if proj.equipment %}
-                <span class="flex items-center gap-1 text-sm text-slate-400">
+                <span class="flex items-center gap-1 text-sm text-ink-muted">
                     <span class="material-symbols-outlined text-[14px]">build</span> {{ proj.equipment }}
                 </span>
                 {% endif %}
@@ -67,44 +67,44 @@
 
             <!-- Stats cards -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
-                    <div class="p-3 rounded-full bg-blue-50 text-blue-600 shrink-0">
+                <div class="panel p-5 flex items-center gap-4">
+                    <div class="p-3 rounded-full bg-primary/10 text-primary shrink-0">
                         <span class="material-symbols-outlined text-2xl">schedule</span>
                     </div>
                     <div>
-                        <div class="text-xs text-slate-400 mb-0.5">總工作天數</div>
-                        <div class="text-2xl font-bold text-slate-900">{{ '%g'|format(total_days) }}</div>
-                        <div class="text-xs text-slate-400">天</div>
+                        <div class="text-xs text-ink-muted mb-0.5">總工作天數</div>
+                        <div class="text-2xl font-bold text-ink">{{ '%g'|format(total_days) }}</div>
+                        <div class="text-xs text-ink-muted">天（人天累計）</div>
                     </div>
                 </div>
-                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
-                    <div class="p-3 rounded-full bg-purple-50 text-purple-600 shrink-0">
+                <div class="panel p-5 flex items-center gap-4">
+                    <div class="p-3 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 shrink-0">
                         <span class="material-symbols-outlined text-2xl">group</span>
                     </div>
                     <div>
-                        <div class="text-xs text-slate-400 mb-0.5">參與人員</div>
-                        <div class="text-2xl font-bold text-slate-900">{{ person_stats|length }}</div>
-                        <div class="text-xs text-slate-400">人</div>
+                        <div class="text-xs text-ink-muted mb-0.5">參與人員</div>
+                        <div class="text-2xl font-bold text-ink">{{ person_stats|length }}</div>
+                        <div class="text-xs text-ink-muted">人</div>
                     </div>
                 </div>
-                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
-                    <div class="p-3 rounded-full bg-green-50 text-green-600 shrink-0">
+                <div class="panel p-5 flex items-center gap-4">
+                    <div class="p-3 rounded-full bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 shrink-0">
                         <span class="material-symbols-outlined text-2xl">task_alt</span>
                     </div>
                     <div>
-                        <div class="text-xs text-slate-400 mb-0.5">工時紀錄</div>
-                        <div class="text-2xl font-bold text-slate-900">{{ tasks_sorted|length }}</div>
-                        <div class="text-xs text-slate-400">筆</div>
+                        <div class="text-xs text-ink-muted mb-0.5">工時紀錄</div>
+                        <div class="text-2xl font-bold text-ink">{{ tasks_sorted|length }}</div>
+                        <div class="text-xs text-ink-muted">筆紀錄</div>
                     </div>
                 </div>
-                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
-                    <div class="p-3 rounded-full bg-orange-50 text-orange-600 shrink-0">
+                <div class="panel p-5 flex items-center gap-4">
+                    <div class="p-3 rounded-full bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 shrink-0">
                         <span class="material-symbols-outlined text-2xl">date_range</span>
                     </div>
                     <div>
-                        <div class="text-xs text-slate-400 mb-0.5">工期</div>
-                        <div class="text-2xl font-bold text-slate-900">{{ duration_days }}</div>
-                        <div class="text-xs text-slate-400">天</div>
+                        <div class="text-xs text-ink-muted mb-0.5">工期</div>
+                        <div class="text-2xl font-bold text-ink">{{ duration_days }}</div>
+                        <div class="text-xs text-ink-muted">天（起算至結束日或今日）</div>
                     </div>
                 </div>
             </div>
@@ -113,54 +113,58 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 <!-- Project info -->
-                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                    <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
+                <div class="panel overflow-hidden">
+                    <div class="px-5 py-4 border-b border-line flex items-center gap-2 bg-surface-muted">
                         <span class="material-symbols-outlined text-[18px] text-primary">info</span>
-                        <h3 class="text-sm font-bold text-slate-800">專案資訊</h3>
+                        <h3 class="text-sm font-bold text-ink">專案資訊</h3>
                     </div>
                     <div class="px-5 py-5 space-y-3.5 text-sm">
                         <div class="flex gap-3">
-                            <span class="text-slate-400 w-[72px] shrink-0 pt-0.5">業務代表</span>
-                            <span class="text-slate-800 font-medium">{{ proj.rep }}</span>
+                            <span class="text-ink-muted w-[72px] shrink-0 pt-0.5">業務代表</span>
+                            <span class="text-ink font-medium">{{ proj.rep }}</span>
                         </div>
                         <div class="flex gap-3">
-                            <span class="text-slate-400 w-[72px] shrink-0 pt-0.5">專案種類</span>
-                            <span class="text-slate-800 font-medium">{{ proj.category }}</span>
+                            <span class="text-ink-muted w-[72px] shrink-0 pt-0.5">專案種類</span>
+                            <span class="text-ink font-medium">{{ proj.category }}</span>
                         </div>
                         {% if proj.equipment %}
                         <div class="flex gap-3">
-                            <span class="text-slate-400 w-[72px] shrink-0 pt-0.5">設備</span>
-                            <span class="text-slate-700">{{ proj.equipment }}</span>
+                            <span class="text-ink-muted w-[72px] shrink-0 pt-0.5">設備</span>
+                            <span class="text-ink">{{ proj.equipment }}</span>
                         </div>
                         {% endif %}
                         {% if proj.description %}
                         <div class="flex gap-3">
-                            <span class="text-slate-400 w-[72px] shrink-0 pt-0.5">內容敘述</span>
-                            <span class="text-slate-700 whitespace-pre-wrap leading-relaxed">{{ proj.description }}</span>
+                            <span class="text-ink-muted w-[72px] shrink-0 pt-0.5">內容敘述</span>
+                            <span class="text-ink whitespace-pre-wrap leading-relaxed">{{ proj.description }}</span>
                         </div>
                         {% endif %}
                         {% if proj.notes %}
                         <div class="flex gap-3">
-                            <span class="text-slate-400 w-[72px] shrink-0 pt-0.5">備註</span>
-                            <span class="text-slate-500 whitespace-pre-wrap leading-relaxed text-[13px]">{{ proj.notes }}</span>
+                            <span class="text-ink-muted w-[72px] shrink-0 pt-0.5">備註</span>
+                            <span class="text-ink-muted whitespace-pre-wrap leading-relaxed text-sm">{{ proj.notes }}</span>
                         </div>
                         {% endif %}
                         {% if not proj.description and not proj.notes %}
-                        <div class="text-slate-300 text-[13px] py-2">（尚無敘述）</div>
+                        <div class="text-ink-muted text-sm py-2">（尚無敘述）</div>
                         {% endif %}
                     </div>
                 </div>
 
                 <!-- Donut chart — work days per person -->
-                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                    <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
+                <div class="panel overflow-hidden">
+                    <div class="px-5 py-4 border-b border-line flex items-center gap-2 bg-surface-muted">
                         <span class="material-symbols-outlined text-[18px] text-primary">pie_chart</span>
-                        <h3 class="text-sm font-bold text-slate-800">人員工時分配（工作天數）</h3>
+                        <h3 class="text-sm font-bold text-ink">人員工時分配（工作天數）</h3>
                     </div>
                     {% if person_stats %}
                     <div class="flex items-center gap-6 p-5 flex-wrap">
-                        <div style="width:160px;height:160px;min-width:160px;">
+                        <div class="relative" style="width:160px;height:160px;min-width:160px;">
                             <canvas id="donut-chart"></canvas>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span class="text-xs text-ink-muted">總計天數</span>
+                                <span class="text-xl font-semibold text-ink num">{{ '%g'|format(total_days) }}</span>
+                            </div>
                         </div>
                         <div class="flex flex-col gap-2 text-sm min-w-0 flex-1 max-h-[160px] overflow-y-auto">
                             {% for p in person_stats %}
@@ -168,24 +172,25 @@
                                 <span class="inline-block size-3 rounded-full shrink-0"
                                       style="background:{{ PIE_COLORS[loop.index0 % PIE_COLORS|length] }}"></span>
                                 <a href="{{ url_for('employee_case', person=p.name, project_id=proj.id) }}"
-                                   class="text-slate-700 hover:text-primary hover:underline truncate text-[13px]">{{ p.name }}</a>
-                                <span class="text-slate-400 ml-auto shrink-0 text-[13px]">{{ '%g'|format(p.days) }} 天</span>
+                                   class="text-ink hover:text-primary hover:underline truncate text-sm">{{ p.name }}</a>
+                                <span class="text-ink-muted ml-auto shrink-0 text-sm num">{{ '%g'|format(p.days) }} 天{% if total_days %} · {{ '%.0f'|format(p.days / total_days * 100) }}%{% endif %}</span>
                             </div>
                             {% endfor %}
                         </div>
                     </div>
+                    <div class="px-5 py-3 border-t border-line text-xs text-ink-muted">資料範疇：{{ proj.start_date.strftime('%Y/%m/%d') }} 起至 {{ proj.end_date.strftime('%Y/%m/%d') if proj.end_date else '今日' }}</div>
                     {% else %}
-                    <div class="p-8 text-center text-slate-300 text-sm">此專案尚無工時紀錄</div>
+                    <div class="p-8 text-center text-ink-muted text-sm">此專案尚無工時紀錄</div>
                     {% endif %}
                 </div>
             </div>
 
             <!-- Bar chart — hours per person (only if any hours recorded) -->
             {% if has_hours %}
-            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
+            <div class="panel overflow-hidden">
+                <div class="px-5 py-4 border-b border-line flex items-center gap-2 bg-surface-muted">
                     <span class="material-symbols-outlined text-[18px] text-primary">bar_chart</span>
-                    <h3 class="text-sm font-bold text-slate-800">人員時數明細（日班 / 加班 / 夜班）</h3>
+                    <h3 class="text-sm font-bold text-ink">人員時數明細（日班 / 加班 / 夜班）</h3>
                 </div>
                 <div class="p-5" style="height:{{ [200, (person_stats|length * 44 + 80)]|max }}px">
                     <canvas id="bar-chart"></canvas>
@@ -194,15 +199,19 @@
             {% endif %}
 
             <!-- Task log -->
-            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
+            <div class="panel overflow-hidden">
+                <div class="px-5 py-4 border-b border-line flex items-center gap-2 bg-surface-muted">
                     <span class="material-symbols-outlined text-[18px] text-primary">receipt_long</span>
-                    <h3 class="text-sm font-bold text-slate-800">工作紀錄（{{ tasks_sorted|length }} 筆）</h3>
+                    <h3 class="text-sm font-bold text-ink">工作紀錄（{{ tasks_sorted|length }} 筆）</h3>
+                    <div class="ml-auto flex items-center gap-2">
+                        <input id="log-search" type="search" class="input !h-9 w-48" placeholder="搜尋紀錄..." aria-label="搜尋工作紀錄">
+                        <button type="button" id="log-csv" class="btn btn-secondary !h-9"><span class="material-symbols-outlined text-[18px]">download</span>匯出 CSV</button>
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm border-collapse">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[13px] font-semibold">
+                            <tr class="bg-surface-muted border-b border-line text-ink-muted text-sm font-medium">
                                 <th class="px-5 py-3 whitespace-nowrap">日期</th>
                                 <th class="px-5 py-3 whitespace-nowrap">人員</th>
                                 <th class="px-5 py-3 whitespace-nowrap text-right">工作天</th>
@@ -211,38 +220,45 @@
                                 <th class="px-5 py-3 min-w-[140px]">備註</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                        <tbody class="divide-y divide-line text-ink">
                             {% for task in tasks_sorted %}
-                            <tr class="hover:bg-slate-50 transition-colors align-top">
-                                <td class="px-5 py-3 whitespace-nowrap text-slate-500 text-[13px]">
+                            <tr data-row class="hover:bg-surface-muted transition-colors align-top">
+                                <td class="px-5 py-3 whitespace-nowrap text-ink-muted text-sm">
                                     {{ task.date.strftime('%Y/%m/%d') }}
                                 </td>
                                 <td class="px-5 py-3 whitespace-nowrap">
                                     <a href="{{ url_for('employee_case', person=task.personnel, project_id=proj.id) }}"
-                                       class="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                                       class="px-2 py-0.5 rounded-sm text-xs font-medium bg-surface-muted text-ink hover:bg-primary/10 hover:text-primary transition-colors">
                                         {{ task.personnel }}
                                     </a>
                                 </td>
                                 <td class="px-5 py-3 text-right whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary num">
                                         {{ task.work_days }} 天
                                     </span>
                                 </td>
-                                <td class="px-5 py-3 text-center whitespace-nowrap text-slate-400 text-[13px]">
-                                    <span class="text-sky-600">{{ task.day_hours if task.day_hours is not none else '—' }}</span> /
-                                    <span class="text-amber-600 font-medium">{{ task.overtime_hours if task.overtime_hours is not none else '—' }}</span> /
-                                    <span class="text-indigo-600">{{ task.night_hours if task.night_hours is not none else '—' }}</span>
+                                <td class="px-5 py-3 text-center whitespace-nowrap text-ink-muted text-sm">
+                                    <span class="text-sky-600 dark:text-sky-400">{{ task.day_hours if task.day_hours is not none else '—' }}</span> /
+                                    <span class="text-amber-600 dark:text-amber-400 font-medium">{{ task.overtime_hours if task.overtime_hours is not none else '—' }}</span> /
+                                    <span class="text-indigo-600 dark:text-indigo-400">{{ task.night_hours if task.night_hours is not none else '—' }}</span>
                                 </td>
-                                <td class="px-5 py-3 whitespace-pre-wrap text-slate-600 leading-relaxed text-[13px]">{{ task.description }}</td>
-                                <td class="px-5 py-3 whitespace-pre-wrap text-slate-400 text-[13px]">{{ task.notes or '' }}</td>
+                                <td class="px-5 py-3 whitespace-pre-wrap text-ink leading-relaxed text-sm">{{ task.description }}</td>
+                                <td class="px-5 py-3 whitespace-pre-wrap text-ink-muted text-sm">{{ task.notes or '' }}</td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="6" class="px-5 py-10 text-center text-slate-300">此專案還沒有工時紀錄。</td>
+                                <td colspan="6" class="px-5 py-10 text-center text-ink-muted">此專案還沒有工時紀錄。</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+                <div class="px-5 py-3 border-t border-line flex items-center justify-between gap-3 text-sm text-ink-muted">
+                    <span id="log-info" class="num"></span>
+                    <div class="flex gap-2">
+                        <button type="button" id="log-prev" class="btn btn-secondary !h-9">上一頁</button>
+                        <button type="button" id="log-next" class="btn btn-secondary !h-9">下一頁</button>
+                    </div>
                 </div>
             </div>
 
@@ -252,6 +268,43 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
+    // Task log: search + pagination + CSV (client-side, data already on page)
+    (function () {
+        const rows = Array.from(document.querySelectorAll('tr[data-row]'));
+        const PAGE = 10;
+        let page = 0, shown = rows;
+        const q = document.getElementById('log-search');
+        function render() {
+            const pages = Math.max(1, Math.ceil(shown.length / PAGE));
+            page = Math.min(page, pages - 1);
+            rows.forEach(r => r.classList.add('hidden'));
+            shown.slice(page * PAGE, page * PAGE + PAGE).forEach(r => r.classList.remove('hidden'));
+            document.getElementById('log-info').textContent = shown.length
+                ? '顯示 ' + (page * PAGE + 1) + ' 至 ' + Math.min(shown.length, page * PAGE + PAGE) + ' 筆，共 ' + shown.length + ' 筆'
+                : '沒有符合的紀錄';
+            document.getElementById('log-prev').disabled = page === 0;
+            document.getElementById('log-next').disabled = page >= pages - 1;
+        }
+        q.addEventListener('input', function () {
+            const k = q.value.trim().toLowerCase();
+            shown = k ? rows.filter(r => r.innerText.toLowerCase().includes(k)) : rows;
+            page = 0; render();
+        });
+        document.getElementById('log-prev').onclick = function () { page--; render(); };
+        document.getElementById('log-next').onclick = function () { page++; render(); };
+        document.getElementById('log-csv').onclick = function () {
+            const data = [['日期', '人員', '工作天', '日班時數', '加班時數', '夜班時數', '工作內容', '備註']];
+            shown.forEach(function (r) {
+                const td = r.querySelectorAll('td');
+                const h = td[3].querySelectorAll('span');
+                data.push([td[0], td[1], td[2], h[0], h[1], h[2], td[4], td[5]]
+                    .map((c, i) => c.textContent.replace(i === 2 ? /\s*天/ : '', '').trim()));
+            });
+            downloadCsv({{ (proj.name ~ '_工作紀錄.csv') | tojson }}, data);
+        };
+        if (rows.length) render(); else { document.getElementById('log-info').textContent = ''; }
+    })();
+
     const PIE_COLORS = {{ PIE_COLORS | tojson }};
 
     // ── Donut chart ──────────────────────────────────────────────────────────
@@ -266,7 +319,7 @@
                     data: {{ person_days | tojson }},
                     backgroundColor: PIE_COLORS.slice(0, {{ person_stats|length }}),
                     borderWidth: 2,
-                    borderColor: '#fff',
+                    borderColor: document.documentElement.classList.contains('dark') ? '#16171a' : '#fff',
                     hoverOffset: 8
                 }]
             },
@@ -333,19 +386,23 @@
                         callbacks: {
                             label: function(ctx) {
                                 return ctx.dataset.label + ': ' + ctx.parsed.x + ' 小時';
+                            },
+                            footer: function(items) {
+                                const t = items.reduce(function(a, i) { return a + i.parsed.x; }, 0);
+                                return '總計 ' + +t.toFixed(2) + ' 小時';
                             }
                         }
                     }
                 },
                 scales: {
                     x: {
-                        stacked: false,
-                        grid: { color: '#f1f5f9' },
+                        stacked: true,
+                        grid: { color: document.documentElement.classList.contains('dark') ? '#2a2b30' : '#f1f5f9' },
                         ticks: { font: { size: 11 } },
                         title: { display: true, text: '小時', font: { size: 11 }, color: '#94a3b8' }
                     },
                     y: {
-                        stacked: false,
+                        stacked: true,
                         grid: { display: false },
                         ticks: { font: { size: 12 } }
                     }

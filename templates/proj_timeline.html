@@ -2,38 +2,24 @@
 
 {% block title %}專案進度表{% endblock %}
 
-{% block content %}
-<div class="layout-container flex h-screen grow flex-col bg-slate-50 overflow-hidden">
-    <header
-        class="flex flex-wrap items-center justify-between gap-4 border-b border-solid border-slate-200 bg-white px-4 sm:px-6 py-3 shrink-0 w-full overflow-x-auto">
-        <a href="{{ url_for('index') }}" class="flex items-center gap-3 sm:gap-4 text-slate-900 hover:opacity-80 transition-opacity">
-            <div class="size-6 text-primary">
-                <span class="material-symbols-outlined text-[24px]">view_kanban</span>
-            </div>
-            <h2 class="text-slate-900 text-base sm:text-lg font-bold leading-tight">專案進度表</h2>
-        </a>
-        <div class="flex items-center gap-4 sm:gap-9 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
-            <a href="{{ url_for('index') }}"
-                class="text-slate-600 hover:text-slate-900 text-sm font-medium transition-colors whitespace-nowrap">首頁</a>
-            <a href="{{ url_for('employee_case') }}"
-                class="text-slate-600 hover:text-slate-900 text-sm font-medium transition-colors whitespace-nowrap">員工進度表</a>
-            <a href="{{ url_for('proj_timeline') }}"
-                class="text-slate-900 text-sm font-medium border-b-2 border-primary sm:pb-1 sm:-mb-[14px] whitespace-nowrap">專案進度表</a>
-        </div>
-    </header>
+{% block body_class %}h-screen{% endblock %}
 
-    <div class="flex flex-col xl:flex-row xl:items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-200 bg-white z-10 shrink-0 gap-4">
-        <div class="flex items-center gap-4 sm:gap-6 border-b xl:border-b-0 border-slate-200 pb-2 xl:pb-0 overflow-x-auto hide-scrollbar">
-            <button id="btn-table" onclick="switchTab('table')"
-                class="flex items-center gap-1 sm:gap-2 xl:pb-2 text-sm font-bold text-primary border-b-2 border-primary xl:-mb-[9px] transition-colors whitespace-nowrap">
+{% block content %}
+<div class="layout-container flex min-h-0 grow flex-col bg-surface-muted overflow-hidden">
+    <div class="flex flex-col xl:flex-row xl:items-center justify-between px-4 sm:px-6 py-3 border-b border-line bg-surface z-10 shrink-0 gap-4">
+        <div class="flex items-center gap-4 sm:gap-6 overflow-x-auto hide-scrollbar">
+            <div data-tabs class="flex items-center gap-4 sm:gap-6">
+            <button id="btn-table" onclick="switchTab('table')" aria-selected="true"
+                class="flex items-center gap-1 sm:gap-2 py-1 text-sm font-bold text-primary transition-colors whitespace-nowrap">
                 <span class="material-symbols-outlined text-[16px] sm:text-[18px]">table_chart</span> 專案表格
             </button>
-            <button id="btn-timeline" onclick="switchTab('timeline')"
-                class="flex items-center gap-1 sm:gap-2 xl:pb-2 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent xl:-mb-[9px] transition-colors whitespace-nowrap">
+            <button id="btn-timeline" onclick="switchTab('timeline')" aria-selected="false"
+                class="flex items-center gap-1 sm:gap-2 py-1 text-sm font-medium text-ink-muted hover:text-ink transition-colors whitespace-nowrap">
                 <span class="material-symbols-outlined text-[16px] sm:text-[18px]">timeline</span> 時間軸
             </button>
+            </div>
             
-            <button id="btn-add-col" onclick="addCustomColumn()" class="ml-2 flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 transition-colors bg-slate-100 hover:bg-blue-50 px-2 py-1 rounded whitespace-nowrap shrink-0">
+            <button id="btn-add-col" onclick="addCustomColumn()" class="btn btn-secondary ml-2 flex items-center gap-1 whitespace-nowrap shrink-0">
                 <span class="material-symbols-outlined text-[14px]">view_column</span> 新增自訂欄位
             </button>
         </div>
@@ -42,58 +28,59 @@
             <!-- Keyword search -->
             <div class="flex items-center relative flex-1 min-w-[120px]">
                 <span class="material-symbols-outlined absolute left-2 text-[18px] text-slate-400">search</span>
-                <input type="text" id="filter-keyword" oninput="applyDateFilter()" placeholder="搜尋專案..." class="form-input w-full rounded-lg border-slate-300 bg-white h-8 pl-8 pr-2 text-xs shadow-sm">
+                <input type="text" id="filter-keyword" oninput="applyDateFilter()" placeholder="搜尋專案..." class="input w-full h-8 pl-8 pr-14 text-xs">
+                <kbd id="kbd-hint" class="hidden sm:inline absolute right-2 text-[11px] text-ink-muted border border-line rounded px-1 pointer-events-none">Ctrl K</kbd>
             </div>
 
             <!-- Month range filter (shared between table & timeline) -->
             <div class="flex items-center gap-1 sm:gap-2" id="date-range-filter">
                 <span class="material-symbols-outlined text-[18px] text-slate-400">date_range</span>
                 <input type="month" id="filter-start" onchange="applyDateFilter()"
-                    class="form-input rounded-lg border-slate-300 bg-white h-8 px-1 sm:px-2 text-xs shadow-sm w-[100px] sm:w-[130px]"
+                    class="input h-8 px-1 sm:px-2 text-xs w-[100px] sm:w-[130px]"
                     title="起始月份">
                 <span class="text-slate-400 text-xs">~</span>
                 <input type="month" id="filter-end" onchange="applyDateFilter()"
-                    class="form-input rounded-lg border-slate-300 bg-white h-8 px-1 sm:px-2 text-xs shadow-sm w-[100px] sm:w-[130px]"
+                    class="input h-8 px-1 sm:px-2 text-xs w-[100px] sm:w-[130px]"
                     title="結束月份">
                 <button onclick="resetDateFilter()"
-                    class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors shrink-0"
+                    class="p-1 text-ink-muted hover:text-ink hover:bg-surface-muted rounded transition-colors shrink-0"
                     title="清除篩選">
                     <span class="material-symbols-outlined text-[16px]">close</span>
                 </button>
             </div>
 
-            <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1 shadow-sm border border-slate-200 dark:border-slate-700 hidden shrink-0"
+            <div class="flex items-center bg-surface-muted rounded-lg p-1 border border-line hidden shrink-0"
                 id="zoom-controls">
                 <button onclick="zoomTimeline(-0.2)"
-                    class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-white rounded transition-colors"
+                    class="p-1.5 text-ink-muted hover:text-ink hover:bg-surface-muted rounded transition-colors"
                     title="縮小">
                     <span class="material-symbols-outlined text-[18px]">zoom_out</span>
                 </button>
-                <span class="text-xs font-medium text-slate-500 px-2" id="zoom-level">100%</span>
+                <span class="text-xs font-medium text-ink-muted px-2" id="zoom-level">100%</span>
                 <button onclick="zoomTimeline(0.2)"
-                    class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-white rounded transition-colors"
+                    class="p-1.5 text-ink-muted hover:text-ink hover:bg-surface-muted rounded transition-colors"
                     title="放大">
                     <span class="material-symbols-outlined text-[18px]">zoom_in</span>
                 </button>
                 <button onclick="resetZoom()"
-                    class="px-2 py-1 text-[11px] font-medium text-slate-500 hover:text-slate-800 hover:bg-white rounded transition-colors ml-1 border-l border-slate-200"
+                    class="px-2 py-1 text-[11px] font-medium text-ink-muted hover:text-ink hover:bg-surface-muted rounded transition-colors ml-1 border-l border-line"
                     title="重設為100%">
                     100%
                 </button>
                 <button onclick="scrollToTodayOnly()"
-                    class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-white rounded transition-colors ml-1 border-l border-slate-200"
+                    class="p-1.5 text-ink-muted hover:text-ink hover:bg-surface-muted rounded transition-colors ml-1 border-l border-line"
                     title="回到今天">
                     <span class="material-symbols-outlined text-[18px]">today</span>
                 </button>
                 <button onclick="showAllProjects()"
-                    class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-white rounded transition-colors ml-1 border-l border-slate-200"
+                    class="p-1.5 text-ink-muted hover:text-ink hover:bg-surface-muted rounded transition-colors ml-1 border-l border-line"
                     title="顯示全部專案">
                     <span class="material-symbols-outlined text-[18px]">fit_screen</span>
                 </button>
             </div>
 
             <a href="{{ url_for('add_proj') }}"
-                class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center gap-1 sm:gap-2 shrink-0">
+                class="btn btn-primary flex items-center justify-center gap-1 sm:gap-2 shrink-0">
                 <span class="material-symbols-outlined text-[16px] sm:text-[18px]">add</span><span class="hidden sm:inline">新增專案</span><span class="sm:hidden">新增</span>
             </a>
         </div>
@@ -158,55 +145,32 @@
         }
     </style>
 
-    <!-- show flash messages (auto-dismiss) -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="px-6 py-2" id="flash-container">
-        {% for category, message in messages %}
-        <div
-            class="flash-msg p-4 rounded-lg shadow-sm text-sm font-medium transition-all duration-500 {% if category == 'success' %}bg-green-100 text-green-700 border border-green-200{% else %}bg-red-100 text-red-700 border border-red-200{% endif %}">
-            {{ message }}
-        </div>
-        {% endfor %}
-    </div>
-    <script>
-        setTimeout(function () {
-            var msgs = document.querySelectorAll('.flash-msg');
-            msgs.forEach(function (m) {
-                m.style.opacity = '0';
-                m.style.transform = 'translateY(-10px)';
-            });
-            setTimeout(function () {
-                var c = document.getElementById('flash-container');
-                if (c) c.remove();
-            }, 500);
-        }, 3000);
-    </script>
-    {% endif %}
-    {% endwith %}
+
+    <!-- Status count chips (click = toggle the existing status filter) -->
+    <div id="status-chips" class="flex flex-wrap items-center gap-2 px-4 sm:px-6 py-2 border-b border-line bg-surface shrink-0"></div>
 
     <!-- show table and timeline -->
     <div class="flex-1 relative overflow-hidden flex flex-col">
 
-        <div id="view-table" class="flex-1 overflow-auto bg-white p-6 flex flex-col">
-            <div class="border border-slate-200 rounded-lg shadow-sm overflow-hidden flex-1">
+        <div id="view-table" class="flex-1 overflow-auto bg-surface p-6 flex flex-col">
+            <div class="border border-line rounded-lg overflow-hidden flex-1">
                 <div class="overflow-x-auto h-full">
                     <table class="w-full text-left whitespace-nowrap border-collapse" id="project-table">
                         <thead id="project-thead">
-                            <tr class="bg-slate-50 border-y border-slate-200">
-                                <th class="px-4 py-3 min-w-[250px] border-r border-slate-200" data-col-id="col-name">專案名稱</th>
-                                <th class="px-4 py-3 min-w-[200px] border-r border-slate-200" data-col-id="col-period">專案期間</th>
-                                <th class="px-4 py-3 border-r border-slate-200" data-col-id="col-status">狀態</th>
-                                <th class="px-4 py-3 border-r border-slate-200" data-col-id="col-rep">業務代表</th>
-                                <th class="px-4 py-3 border-r border-slate-200" data-col-id="col-equip">設備</th>
-                                <th class="px-4 py-3 min-w-[200px] border-r border-slate-200" data-col-id="col-personnel">人員名單</th>
-                                <th class="px-4 py-3 min-w-[250px] border-r border-slate-200" data-col-id="col-desc">內容敘述</th>
+                            <tr class="bg-surface-muted border-y border-line text-sm text-ink-muted [&_th]:font-medium">
+                                <th class="px-4 py-3 min-w-[250px] border-r border-line" data-col-id="col-name">專案名稱 <button type="button" onclick="sortRows('name')" class="align-middle text-ink-muted hover:text-ink" title="依專案名稱排序"><span class="material-symbols-outlined text-[16px]">swap_vert</span></button></th>
+                                <th class="px-4 py-3 min-w-[200px] border-r border-line" data-col-id="col-period">專案期間 <button type="button" onclick="sortRows('period')" class="align-middle text-ink-muted hover:text-ink" title="依專案期間排序"><span class="material-symbols-outlined text-[16px]">swap_vert</span></button></th>
+                                <th class="px-4 py-3 border-r border-line" data-col-id="col-status">狀態</th>
+                                <th class="px-4 py-3 border-r border-line" data-col-id="col-rep">業務代表</th>
+                                <th class="px-4 py-3 border-r border-line" data-col-id="col-equip">設備</th>
+                                <th class="px-4 py-3 min-w-[200px] border-r border-line" data-col-id="col-personnel">人員名單</th>
+                                <th class="px-4 py-3 min-w-[250px] border-r border-line" data-col-id="col-desc">內容敘述</th>
                                 <th class="px-4 py-3 min-w-[350px]" data-col-id="col-notes">備註</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm text-slate-700" id="project-tbody">
+                        <tbody class="divide-y divide-line text-sm text-ink" id="project-tbody">
                             {% for proj in projects %}
-                            <tr class="hover:bg-slate-50 transition-colors align-top group project-row"
+                            <tr class="hover:bg-surface-muted transition-colors align-top group project-row"
                                 data-id="{{ proj.id }}"
                                 data-start="{{ proj.start_date.strftime('%Y-%m-%d') }}"
                                 data-end="{{ proj.end_date.strftime('%Y-%m-%d') if proj.end_date else '' }}"
@@ -214,20 +178,20 @@
                                 data-status="{{ proj.status }}"
                                 data-name="{{ proj.name | lower }}"
                                 data-personnel="{% for task in proj.tasks %}{{ task.personnel }},{% endfor %}">
-                                <td class="px-4 py-3 font-medium text-slate-900" data-col-id="col-name">
+                                <td class="px-4 py-3 font-medium text-ink" data-col-id="col-name">
                                     <div class="flex items-start justify-between gap-2">
-                                        <a href="{{ url_for('project_detail', id=proj.id) }}" class="mt-1 hover:text-primary hover:underline transition-colors">{{ proj.name }}</a>
+                                        <a href="{{ url_for('project_detail', id=proj.id) }}" class="mt-1 hover:text-primary hover:underline transition-colors">{{ proj.name }}<span class="material-symbols-outlined text-[14px] align-middle ml-1 opacity-60">open_in_new</span></a>
                                         <div
                                             class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                             <a href="{{ url_for('edit_project', id=proj.id) }}"
-                                                class="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors"
+                                                class="text-blue-600 hover:bg-surface-muted p-1.5 rounded transition-colors"
                                                 title="修改專案">
                                                 <span class="material-symbols-outlined text-[18px]">edit</span>
                                             </a>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 text-slate-500" data-col-id="col-period">
+                                <td class="px-4 py-3 text-ink-muted" data-col-id="col-period">
                                     {{ proj.start_date.strftime('%Y/%m/%d') }}
                                     {% if proj.end_date %} - {{ proj.end_date.strftime('%Y/%m/%d') }}{% endif %}
                                 </td>
@@ -236,19 +200,19 @@
                                         {% for s in proj.status.split(',') %}
                                         {% if s == '進行中' %}
                                         <span
-                                            class="px-2 py-1 bg-amber-100 text-amber-800 rounded font-medium text-xs">進行中</span>
+                                            class="px-1.5 py-0.5 bg-status-active-bg text-status-active-fg rounded-sm font-medium text-xs">進行中</span>
                                         {% elif s == '暫緩中' %}
                                         <span
-                                            class="px-2 py-1 bg-blue-100 text-blue-800 rounded font-medium text-xs">暫緩中</span>
+                                            class="px-1.5 py-0.5 bg-status-paused-bg text-status-paused-fg rounded-sm font-medium text-xs">暫緩中</span>
                                         {% elif s == '等待中' %}
                                         <span
-                                            class="px-2 py-1 bg-pink-100 text-pink-800 rounded font-medium text-xs">等待中</span>
+                                            class="px-1.5 py-0.5 bg-status-waiting-bg text-status-waiting-fg rounded-sm font-medium text-xs">等待中</span>
                                         {% elif s == '已結案' %}
                                         <span
-                                            class="px-2 py-1 bg-green-100 text-green-800 rounded font-medium text-xs">已結案</span>
+                                            class="px-1.5 py-0.5 bg-status-closed-bg text-status-closed-fg rounded-sm font-medium text-xs">已結案</span>
                                         {% else %}
                                         <span
-                                            class="px-2 py-1 bg-slate-100 text-slate-800 rounded font-medium text-xs">{{
+                                            class="px-1.5 py-0.5 bg-surface-muted text-ink rounded-sm font-medium text-xs">{{
                                             s }}</span>
                                         {% endif %}
                                         {% endfor %}
@@ -256,51 +220,57 @@
                                 </td>
                                 <td class="px-4 py-3" data-col-id="col-rep">{{ proj.rep }}</td>
                                 <td class="px-4 py-3" data-col-id="col-equip">{{ proj.equipment if proj.equipment else '' }}</td>
-                                <td class="px-4 py-3 text-slate-600" data-col-id="col-personnel">
+                                <td class="px-4 py-3 text-ink-muted" data-col-id="col-personnel">
                                     <div class="flex flex-wrap gap-1">
                                         {% set task_users = [] %}
                                         {% for task in proj.tasks %}
                                         {% if task.personnel not in task_users %}
                                         {% set _ = task_users.append(task.personnel) %}
                                         {% if task.personnel in resigned_map %}
-                                        <a href="{{ url_for('employee_case', person=task.personnel, project_id=proj.id) }}" class="px-2 py-0.5 bg-rose-100 text-rose-700 rounded text-xs hover:bg-rose-200 transition-colors" title="已辭職 {{ resigned_map[task.personnel] }}">{{ task.personnel }} · 離職 {{ resigned_map[task.personnel] }}</a>
+                                        <a href="{{ url_for('employee_case', person=task.personnel, project_id=proj.id) }}" class="px-1.5 py-0.5 bg-status-waiting-bg text-status-waiting-fg rounded-sm text-xs hover:opacity-80 transition-colors" title="已辭職 {{ resigned_map[task.personnel] }}"><span class="material-symbols-outlined text-[12px] align-middle">person_off</span> {{ task.personnel }} · 離職 {{ resigned_map[task.personnel] }}</a>
                                         {% else %}
-                                        <a href="{{ url_for('employee_case', person=task.personnel, project_id=proj.id) }}" class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs hover:bg-blue-50 hover:text-blue-700 transition-colors">{{ task.personnel }}</a>
+                                        <a href="{{ url_for('employee_case', person=task.personnel, project_id=proj.id) }}" class="px-1.5 py-0.5 bg-surface-muted text-ink-muted rounded-sm text-xs hover:text-primary transition-colors">{{ task.personnel }}</a>
                                         {% endif %}
                                         {% endif %}
                                         {% endfor %}
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 text-slate-600 whitespace-pre-wrap text-[13px] leading-relaxed" data-col-id="col-desc">{{ proj.description if proj.description else '' }}</td>
-                                <td class="px-4 py-3 text-slate-500 whitespace-pre-wrap text-[13px] leading-relaxed" data-col-id="col-notes">{{ proj.notes if proj.notes else '' }}</td>
+                                <td class="px-4 py-3 text-ink-muted whitespace-pre-wrap text-[13px] leading-relaxed" data-col-id="col-desc">{{ proj.description if proj.description else '' }}</td>
+                                <td class="px-4 py-3 text-ink-muted whitespace-pre-wrap text-[13px] leading-relaxed" data-col-id="col-notes">{{ proj.notes if proj.notes else '' }}</td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="8" class="px-4 py-8 text-center text-slate-500">目前還沒有專案紀錄。</td>
+                                <td colspan="8" class="px-4 py-8 text-center text-ink-muted">目前還沒有專案紀錄。</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
+            <div class="filter-empty hidden flex-col items-center justify-center gap-2 py-10 text-center">
+                <span class="material-symbols-outlined text-[32px] text-ink-muted">inbox</span>
+                <div class="text-base font-bold text-ink">沒有符合條件的專案</div>
+                <div class="text-sm text-ink-muted">請調整搜尋或篩選條件。</div>
+                <button type="button" onclick="resetDateFilter()" class="btn btn-secondary flex items-center gap-1 mt-1"><span class="material-symbols-outlined text-[16px]">refresh</span> 重設篩選條件</button>
+            </div>
         </div>
 
-        <div id="view-timeline" class="hidden flex-1 overflow-auto bg-white relative">
+        <div id="view-timeline" class="hidden flex-1 overflow-auto bg-surface relative">
             <div class="inline-block min-w-full align-middle">
                 <!-- Timeline header - dynamically generated -->
-                <div class="flex sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm min-w-max">
+                <div class="flex sticky top-0 z-30 bg-surface border-b border-line min-w-max">
                     <div
-                        class="sticky left-0 z-40 w-[150px] sm:w-[200px] lg:w-[300px] shrink-0 bg-white border-r border-slate-200 px-3 sm:px-5 py-3 flex items-center shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
-                        <span class="font-bold text-slate-700 text-xs sm:text-sm">專案名稱</span>
+                        class="sticky left-0 z-40 w-[150px] sm:w-[200px] lg:w-[300px] shrink-0 bg-surface border-r border-line px-3 sm:px-5 py-3 flex items-center">
+                        <span class="font-bold text-ink text-xs sm:text-sm">專案名稱</span>
                     </div>
                     <div id="timeline-container"
-                        class="flex flex-1 relative text-center origin-left">
+                        class="flex flex-col flex-1 relative text-center origin-left">
                     </div>
                 </div>
 
                 <div class="flex flex-col min-w-max pb-20 pt-1" id="timeline-rows">
                     {% for item in timeline_data %}
-                    <div class="flex border-b border-slate-100 hover:bg-slate-50 transition-colors group timeline-project-row"
+                    <div class="flex border-b border-line hover:bg-surface-muted transition-colors group timeline-project-row"
                         data-start="{{ item.proj.start_date.strftime('%Y-%m-%d') }}"
                         data-end="{{ item.proj.end_date.strftime('%Y-%m-%d') if item.proj.end_date else '' }}"
                         data-rep="{{ item.proj.rep }}"
@@ -310,8 +280,12 @@
                         data-orig-left="{{ item.left }}"
                         data-orig-width="{{ item.width }}">
                         <div
-                            class="sticky left-0 z-20 w-[150px] sm:w-[200px] lg:w-[300px] shrink-0 bg-white group-hover:bg-slate-50 border-r border-slate-200 px-3 sm:px-5 flex items-center h-[60px] shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
-                            <a href="{{ url_for('project_detail', id=item.proj.id) }}" class="text-xs sm:text-sm font-medium text-slate-800 hover:text-primary hover:underline truncate" title="{{ item.proj.name }}">{{ item.proj.name }}</a>
+                            class="sticky left-0 z-20 w-[150px] sm:w-[200px] lg:w-[300px] shrink-0 bg-surface group-hover:bg-surface-muted border-r border-line px-3 sm:px-5 flex items-center h-[60px]">
+                            <div class="min-w-0">
+                                <a href="{{ url_for('project_detail', id=item.proj.id) }}" class="block text-xs sm:text-sm font-medium text-ink hover:text-primary hover:underline truncate" title="{{ item.proj.name }}">{{ item.proj.name }}</a>
+                                <div class="text-[11px] sm:text-xs text-ink-muted truncate">{{ item.proj.rep }}{% if item.proj.description %} · {{ item.proj.description.split('
+')[0] }}{% endif %}</div>
+                            </div>
                         </div>
 
                         <div
@@ -326,21 +300,21 @@
                             </div>
 
                             <!-- Main project background -->
-                            <div class="timeline-bar absolute h-[36px] mt-[12px] bg-slate-100/80 rounded-md shadow-sm flex items-center border border-slate-300 z-0 overflow-hidden"
+                            <div class="timeline-bar absolute h-[36px] mt-[12px] {% set st0 = item.proj.status.split(',')[0] %}{{ 'bg-status-active-bg' if st0 == '進行中' else 'bg-status-paused-bg' if st0 == '暫緩中' else 'bg-status-waiting-bg' if st0 == '等待中' else 'bg-status-closed-bg' if st0 == '已結案' else 'bg-surface-muted' }} rounded-md flex items-center border border-line z-0 overflow-hidden"
                                 style="left: {{ item.left }}%; width: {{ item.width }}%; min-width: 250px;">
                                 <div class="bar-text flex items-center px-3 gap-3 h-full whitespace-nowrap opacity-60 pointer-events-none">
-                                    <span class="text-[13px] font-semibold text-slate-700">{{ item.proj.name }}</span>
+                                    <span class="text-[13px] font-semibold text-ink">{{ item.proj.name }}</span>
                                     <span
                                         class="{{ item.tag_class }} text-white text-[11px] px-1.5 py-0.5 rounded font-medium">{{
                                         item.proj.status }}</span>
-                                    <span class="text-slate-500 text-[12px]">{{ item.proj.rep }}</span>
+                                    <span class="text-ink-muted text-[12px]">{{ item.proj.rep }}</span>
                                     <span class="text-slate-400 text-[12px]">{{ item.proj.description if item.proj.description else '' }}</span>
                                 </div>
                             </div>
 
                             <!-- Task segments (Solid bars) -->
                             {% for seg in item.segments %}
-                            <div class="timeline-bar task-segment absolute h-[26px] mt-[17px] bg-gradient-to-b from-blue-500 to-blue-600 rounded-md shadow-sm flex items-center hover:from-blue-600 hover:to-blue-700 border border-blue-700/70 z-10 overflow-hidden cursor-pointer opacity-95 hover:opacity-100 transition-all"
+                            <div class="timeline-bar task-segment absolute h-[26px] mt-[17px] bg-primary/25 hover:bg-primary/35 rounded-md flex items-center border border-primary/50 z-10 overflow-hidden cursor-pointer opacity-95 hover:opacity-100 transition-all"
                                 style="left: {{ seg.left }}%; width: {{ seg.width }}%; min-width: 40px;"
                                 data-personnel="{{ seg.personnel }}"
                                 data-date="{{ seg.date }}"
@@ -352,18 +326,24 @@
                                 data-resigned="{{ resigned_map[seg.personnel] if seg.personnel in resigned_map else '' }}"
                                 data-desc="{{ seg.desc if seg.desc else '' }}">
                                 <div class="bar-text flex items-center px-1.5 h-full whitespace-nowrap w-full justify-center">
-                                    <span class="text-[10px] font-bold text-white truncate drop-shadow-md">{{ seg.personnel }}{% if seg.personnel in resigned_map %} ⚠{% endif %}</span>
+                                    <span class="text-[10px] font-bold text-ink truncate">{{ seg.personnel }}{% if seg.personnel in resigned_map %} ⚠{% endif %}</span>
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
                     </div>
                     {% else %}
-                    <div class="flex border-b border-slate-100 items-center justify-center h-[100px]">
-                        <span class="text-slate-500 text-sm">目前還沒有專案紀錄。</span>
+                    <div class="flex border-b border-line items-center justify-center h-[100px]">
+                        <span class="text-ink-muted text-sm">目前還沒有專案紀錄。</span>
                     </div>
                     {% endfor %}
                 </div>
+                <div class="filter-empty hidden flex-col items-center justify-center gap-2 py-10 text-center">
+                <span class="material-symbols-outlined text-[32px] text-ink-muted">inbox</span>
+                <div class="text-base font-bold text-ink">沒有符合條件的專案</div>
+                <div class="text-sm text-ink-muted">請調整搜尋或篩選條件。</div>
+                <button type="button" onclick="resetDateFilter()" class="btn btn-secondary flex items-center gap-1 mt-1"><span class="material-symbols-outlined text-[16px]">refresh</span> 重設篩選條件</button>
+            </div>
             </div>
         </div>
 
@@ -371,29 +351,18 @@
         <div id="seg-tooltip"></div>
 
         <!-- Custom Column Modal -->
-        <div id="custom-col-modal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center">
-            <div class="bg-white rounded-xl shadow-lg w-full max-w-sm p-6">
-                <h3 class="text-lg font-bold text-slate-900 mb-4">新增自訂欄位</h3>
-                <label class="block text-sm font-medium text-slate-700 mb-1">自訂欄位名稱</label>
-                <input type="text" id="custom-col-input" class="form-input w-full rounded-lg border-slate-300 mb-4 px-3 py-2" placeholder="例如：採購進度" onkeydown="if(event.key === 'Enter') submitCustomColumn()">
+        <div id="custom-col-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center">
+            <div class="bg-surface rounded-lg border border-line w-full max-w-sm p-6">
+                <h3 class="text-lg font-bold text-ink mb-4">新增自訂欄位</h3>
+                <label class="block text-sm font-medium text-ink mb-1">自訂欄位名稱</label>
+                <input type="text" id="custom-col-input" class="input w-full mb-4" placeholder="例如：採購進度" onkeydown="if(event.key === 'Enter') submitCustomColumn()">
                 <div class="flex justify-end gap-3">
-                    <button onclick="closeCustomColModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">取消</button>
-                    <button onclick="submitCustomColumn()" class="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-sm transition-colors">確定</button>
+                    <button onclick="closeCustomColModal()" class="px-4 py-2 text-sm font-medium text-ink-muted hover:bg-surface-muted rounded-lg transition-colors">取消</button>
+                    <button onclick="submitCustomColumn()" class="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors">確定</button>
                 </div>
             </div>
         </div>
 
-        <!-- Custom Confirm Modal -->
-        <div id="custom-confirm-modal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center">
-            <div class="bg-white rounded-xl shadow-lg w-full max-w-sm p-6">
-                <h3 class="text-lg font-bold text-slate-900 mb-2">確認刪除</h3>
-                <p id="custom-confirm-msg" class="text-sm text-slate-600 mb-6"></p>
-                <div class="flex justify-end gap-3">
-                    <button onclick="closeCustomConfirmModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">取消</button>
-                    <button id="custom-confirm-btn" class="px-4 py-2 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-lg shadow-sm transition-colors">確定刪除</button>
-                </div>
-            </div>
-        </div>
         {% endblock %}
         {% block scripts %}
         <script>
@@ -461,7 +430,7 @@
                 customColumns.forEach((colName) => {
                     // Add TH
                     const th = document.createElement('th');
-                    th.className = 'px-4 py-3 min-w-[150px] border-r border-slate-200 custom-col-th group/th relative bg-slate-50';
+                    th.className = 'px-4 py-3 min-w-[150px] border-r border-line custom-col-th group/th relative bg-surface-muted';
                     th.setAttribute('data-col-id', `custom_${colName}`);
                     th.innerHTML = `
                         <div class="flex items-center justify-between pointer-events-none">
@@ -477,7 +446,7 @@
                     tbodyTrs.forEach(tr => {
                         const projId = tr.getAttribute('data-id');
                         const td = document.createElement('td');
-                        td.className = 'px-4 py-3 text-slate-700 whitespace-normal custom-col-td border-r border-slate-100 hover:bg-white transition-colors cursor-text focus:bg-white focus:ring-1 focus:ring-primary/50';
+                        td.className = 'px-4 py-3 text-ink whitespace-normal custom-col-td border-r border-line hover:bg-surface-muted transition-colors cursor-text focus:bg-surface-muted focus:ring-1 focus:ring-primary/50';
                         td.setAttribute('data-col-id', `custom_${colName}`);
                         td.contentEditable = 'true';
                         td.style.outline = 'none';
@@ -530,20 +499,8 @@
             }
 
             function confirmRemoveCustomColumn(colName) {
-                document.getElementById('custom-confirm-msg').innerText = `確定要刪除「${colName}」欄位嗎？這將會清除該欄位所有記錄！`;
-                const modal = document.getElementById('custom-confirm-modal');
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                
-                document.getElementById('custom-confirm-btn').onclick = function() {
-                    executeRemoveCustomColumn(colName);
-                };
-            }
-
-            function closeCustomConfirmModal() {
-                const modal = document.getElementById('custom-confirm-modal');
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
+                confirmDialog(`確定要刪除「${colName}」欄位嗎？這將會清除該欄位所有記錄！`, { confirmText: '確定刪除' })
+                    .then(ok => { if (ok) executeRemoveCustomColumn(colName); });
             }
 
             function executeRemoveCustomColumn(colName) {
@@ -559,7 +516,6 @@
                 renderCustomColumns();
                 enforceSavedColumnOrder();
                 initColumnReordering();
-                closeCustomConfirmModal();
             }
 
             // =============================================
@@ -759,20 +715,47 @@
                 return markers;
             }
 
+            // "YYYY-W" key for the ISO week containing date d
+            function isoWeekKey(d) {
+                const t = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                t.setDate(t.getDate() + 3 - ((t.getDay() + 6) % 7));
+                const w1 = new Date(t.getFullYear(), 0, 4);
+                const w = 1 + Math.round(((t - w1) / 86400000 - 3 + ((w1.getDay() + 6) % 7)) / 7);
+                return t.getFullYear() + '-' + w;
+            }
+
             function renderTimeMarkers() {
                 const markers = generateTimeMarkers();
                 const scale = determineScale();
                 const container = document.getElementById('timeline-container');
 
-                let headerHtml = '';
+                let headerHtml = '<div class="flex w-full">';
                 markers.forEach((m, idx) => {
                     // #3 Alternating month/period background for clearer separation
                     const bandBg = (idx % 2 === 1) ? 'bg-slate-50/70' : 'bg-white';
-                    headerHtml += `<div class="border-r border-slate-200 px-2 py-3 font-bold text-slate-700 text-xs sm:text-sm flex flex-col justify-center shrink-0 ${bandBg}" style="width: ${m.widthPct}%;"><span class="truncate" title="${m.label}">${m.label}</span></div>`;
+                    headerHtml += `<div class="border-r border-line px-2 py-3 font-bold text-ink text-xs sm:text-sm flex flex-col justify-center shrink-0 ${bandBg} dark:bg-transparent" style="width: ${m.widthPct}%;"><span class="truncate" title="${m.label}">${m.label}</span></div>`;
                 });
 
-                // Today label in header
-                headerHtml += `<div class="absolute top-0 bottom-0 z-[5] pointer-events-none" style="left: ${TODAY_PCT}%;"><div class="today-bar"></div><div class="absolute top-0 left-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-b font-bold whitespace-nowrap shadow">今天</div></div>`;
+                headerHtml += '</div>';
+
+                // Week ticks (ISO week of each Monday), only when zoomed in enough
+                if (scale === 'month') {
+                    const totalDays = getTimelineTotal();
+                    const curWeek = isoWeekKey(new Date());
+                    headerHtml += '<div class="relative w-full h-6 border-t border-line">';
+                    const d = new Date(TIMELINE_START.getFullYear(), TIMELINE_START.getMonth(), TIMELINE_START.getDate());
+                    d.setDate(d.getDate() + ((8 - d.getDay()) % 7)); // next Monday (or today if Monday)
+                    for (; d < TIMELINE_END; d.setDate(d.getDate() + 7)) {
+                        const pct = ((d - TIMELINE_START) / 86400000 / totalDays) * 100;
+                        const isCur = isoWeekKey(d) === curWeek;
+                        headerHtml += `<span class="absolute top-0 h-full flex items-center pl-1 text-[11px] whitespace-nowrap ${isCur ? 'font-bold text-primary' : 'text-ink-muted'}" style="left:${pct}%;">W${isoWeekKey(d).split('-')[1]}${isCur ? '(今)' : ''}</span>`;
+                    }
+                    headerHtml += '</div>';
+                }
+
+                // Today flag in header
+                const nowD = new Date();
+                headerHtml += `<div class="absolute top-0 bottom-0 z-[5] pointer-events-none" style="left: ${TODAY_PCT}%;"><div class="today-bar"></div><div class="absolute top-0 left-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-b font-bold whitespace-nowrap shadow">今天 ${nowD.getMonth() + 1}/${nowD.getDate()}</div></div>`;
 
                 container.innerHTML = headerHtml;
 
@@ -780,7 +763,7 @@
                 let gridHtml = '';
                 markers.forEach((m, idx) => {
                     const bandBg = (idx % 2 === 1) ? 'bg-slate-50/50' : '';
-                    gridHtml += `<div class="border-r border-slate-200/70 h-full ${bandBg}" style="width: ${m.widthPct}%;"></div>`;
+                    gridHtml += `<div class="border-r border-line h-full ${bandBg} dark:bg-transparent" style="width: ${m.widthPct}%;"></div>`;
                 });
 
                 // #3 Weekend shading (only meaningful at month scale)
@@ -1005,7 +988,7 @@
                     
                     const select = document.createElement('select');
                     select.id = 'filter-personnel';
-                    select.className = 'ml-2 text-xs font-normal border-slate-300 rounded p-0.5 bg-slate-50 text-slate-700 cursor-pointer shadow-sm w-20';
+                    select.className = 'ml-2 text-xs font-normal border-line rounded p-0.5 bg-surface text-ink cursor-pointer w-20';
                     select.onchange = applyDateFilter;
                     
                     const optAll = document.createElement('option');
@@ -1038,19 +1021,19 @@
                 wrapper.className = 'relative ml-2';
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'text-xs font-normal border border-slate-300 rounded px-1.5 py-0.5 bg-slate-50 text-slate-700 cursor-pointer shadow-sm flex items-center gap-1';
+                btn.className = 'text-xs font-normal border border-line rounded px-1.5 py-0.5 bg-surface text-ink cursor-pointer flex items-center gap-1';
                 btn.innerHTML = '<span id="filter-status-label">全部</span><span class="material-symbols-outlined text-[14px]">expand_more</span>';
                 const panel = document.createElement('div');
                 panel.id = 'filter-status-panel';
-                panel.className = 'hidden absolute z-20 mt-1 left-0 bg-white border border-slate-200 rounded-lg shadow-lg p-2 flex flex-col gap-1 whitespace-nowrap';
+                panel.className = 'hidden absolute z-20 mt-1 left-0 bg-surface border border-line rounded-lg shadow-lg p-2 flex flex-col gap-1 whitespace-nowrap';
 
                 Array.from(values).sort().forEach(val => {
                     const label = document.createElement('label');
-                    label.className = 'flex items-center gap-1.5 text-xs font-normal text-slate-700 cursor-pointer px-1 py-0.5 hover:bg-slate-50 rounded';
+                    label.className = 'flex items-center gap-1.5 text-xs font-normal text-ink cursor-pointer px-1 py-0.5 hover:bg-surface-muted rounded';
                     const cb = document.createElement('input');
                     cb.type = 'checkbox';
                     cb.value = val;
-                    cb.className = 'status-filter-checkbox rounded border-slate-300';
+                    cb.className = 'status-filter-checkbox rounded border-line bg-surface';
                     cb.onchange = () => { updateStatusFilterLabel(); applyDateFilter(); };
                     label.appendChild(cb);
                     label.appendChild(document.createTextNode(val));
@@ -1073,6 +1056,7 @@
                 const checked = Array.from(document.querySelectorAll('.status-filter-checkbox:checked')).map(cb => cb.value);
                 const label = document.getElementById('filter-status-label');
                 if (label) label.textContent = checked.length ? `已選 ${checked.length} 個` : '全部';
+                renderStatusChips();
             }
 
             function getSelectedStatuses() {
@@ -1094,7 +1078,7 @@
 
                 const select = document.createElement('select');
                 select.id = id;
-                select.className = 'ml-2 text-xs font-normal border-slate-300 rounded p-0.5 bg-slate-50 text-slate-700 cursor-pointer shadow-sm';
+                select.className = 'ml-2 text-xs font-normal border-line rounded p-0.5 bg-surface text-ink cursor-pointer';
                 select.onchange = applyDateFilter;
                 
                 const optAll = document.createElement('option');
@@ -1150,6 +1134,77 @@
 
                 // Update timeline range to match filter
                 updateTimelineRange(filterStart, filterEnd);
+
+                // Empty state when filters hide every project
+                const all = document.querySelectorAll('.project-row');
+                const anyVisible = Array.from(all).some(r => r.style.display !== 'none');
+                document.querySelectorAll('.filter-empty').forEach(el => {
+                    const show = all.length > 0 && !anyVisible;
+                    el.classList.toggle('hidden', !show);
+                    el.classList.toggle('flex', show);
+                });
+            }
+
+            // =============================================
+            // Status count chips (drive the status checkbox filter)
+            // =============================================
+            const STATUS_CHIP_CLASS = {
+                '進行中': 'bg-status-active-bg text-status-active-fg',
+                '暫緩中': 'bg-status-paused-bg text-status-paused-fg',
+                '等待中': 'bg-status-waiting-bg text-status-waiting-fg',
+                '已結案': 'bg-status-closed-bg text-status-closed-fg'
+            };
+
+            function renderStatusChips() {
+                const box = document.getElementById('status-chips');
+                if (!box) return;
+                const counts = {};
+                document.querySelectorAll('.project-row').forEach(row => {
+                    (row.getAttribute('data-status') || '').split(',').filter(Boolean).forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+                });
+                const selected = getSelectedStatuses();
+                box.innerHTML = '';
+                Object.keys(counts).forEach(st => {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    const on = selected.includes(st);
+                    b.className = 'interactive flex items-center gap-2 px-3 py-1 rounded-full border text-sm font-medium '
+                        + (STATUS_CHIP_CLASS[st] || 'bg-surface-muted text-ink') + (on ? ' border-primary ring-2 ring-primary/40' : ' border-line');
+                    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                    b.title = '點擊篩選「' + st + '」';
+                    b.innerHTML = '<span class="w-2 h-2 rounded-full bg-current"></span>';
+                    b.appendChild(document.createTextNode(st + ' '));
+                    const n = document.createElement('span');
+                    n.className = 'num font-bold';
+                    n.textContent = counts[st] + ' 案';
+                    b.appendChild(n);
+                    b.onclick = () => {
+                        const cb = Array.from(document.querySelectorAll('.status-filter-checkbox')).find(c => c.value === st);
+                        if (!cb) return;
+                        cb.checked = !cb.checked;
+                        updateStatusFilterLabel();
+                        applyDateFilter();
+                    };
+                    box.appendChild(b);
+                });
+                box.classList.toggle('hidden', !Object.keys(counts).length);
+            }
+
+            // =============================================
+            // Column sort (table + timeline rows share the same order)
+            // =============================================
+            const sortState = { key: null, dir: 1 };
+            function sortRows(key) {
+                sortState.dir = sortState.key === key ? -sortState.dir : 1;
+                sortState.key = key;
+                const val = r => key === 'name' ? r.getAttribute('data-name') : (r.getAttribute('data-start') + '|' + r.getAttribute('data-end'));
+                [['#project-tbody', '.project-row'], ['#timeline-rows', '.timeline-project-row']].forEach(([box, sel]) => {
+                    const parent = document.querySelector(box);
+                    if (!parent) return;
+                    Array.from(parent.querySelectorAll(':scope > ' + sel))
+                        .sort((a, b) => val(a).localeCompare(val(b), 'zh-Hant') * sortState.dir)
+                        .forEach(r => parent.appendChild(r));
+                });
             }
 
             function filterRow(row, filterStart, filterEnd, repVal, statusVals, personnelVal, keywordVal) {
@@ -1251,13 +1306,13 @@
                 document.getElementById('filter-end').value = '';
                 document.getElementById('filter-keyword').value = '';
                 const filterRepEl = document.getElementById('filter-rep');
-                const filterStatusEl = document.getElementById('filter-status');
                 const filterPersonnelEl = document.getElementById('filter-personnel');
-                
+
                 if (filterRepEl) filterRepEl.value = '';
-                if (filterStatusEl) filterStatusEl.value = '';
                 if (filterPersonnelEl) filterPersonnelEl.value = '';
-                
+                document.querySelectorAll('.status-filter-checkbox:checked').forEach(cb => { cb.checked = false; });
+                updateStatusFilterLabel();
+
                 applyDateFilter();
             }
 
@@ -1269,19 +1324,23 @@
                 document.getElementById('view-table').classList.add('hidden');
                 document.getElementById('view-timeline').classList.add('hidden');
 
-                document.getElementById('btn-table').className = "flex items-center gap-2 pb-2 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent -mb-[9px] transition-colors";
-                document.getElementById('btn-timeline').className = "flex items-center gap-2 pb-2 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent -mb-[9px] transition-colors";
+                [['table', document.getElementById('btn-table')], ['timeline', document.getElementById('btn-timeline')]].forEach(([t, b]) => {
+                    const on = t === tabId;
+                    b.setAttribute('aria-selected', on ? 'true' : 'false');
+                    b.classList.toggle('font-bold', on);
+                    b.classList.toggle('text-primary', on);
+                    b.classList.toggle('font-medium', !on);
+                    b.classList.toggle('text-ink-muted', !on);
+                });
 
                 document.getElementById('view-' + tabId).classList.remove('hidden');
                 const zoomControls = document.getElementById('zoom-controls');
 
                 if (tabId === 'table') {
-                    document.getElementById('btn-table').className = "flex items-center gap-2 pb-2 text-sm font-bold text-primary border-b-2 border-primary -mb-[9px] transition-colors";
                     if (zoomControls) zoomControls.classList.add('hidden');
                     const btnAddCol = document.getElementById('btn-add-col');
                     if (btnAddCol) btnAddCol.style.display = 'flex';
                 } else {
-                    document.getElementById('btn-timeline').className = "flex items-center gap-2 pb-2 text-sm font-bold text-primary border-b-2 border-primary -mb-[9px] transition-colors";
                     if (zoomControls) zoomControls.classList.remove('hidden');
                     const btnAddCol = document.getElementById('btn-add-col');
                     if (btnAddCol) btnAddCol.style.display = 'none';
@@ -1353,6 +1412,16 @@
                 initColumnReordering();
                 renderTimeMarkers();
                 setupSegmentTooltip();
+                renderStatusChips();
+
+                if (/Mac/i.test(navigator.platform)) document.getElementById('kbd-hint').textContent = '⌘K';
+                document.addEventListener('keydown', function (e) {
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                        e.preventDefault();
+                        const inp = document.getElementById('filter-keyword');
+                        if (inp) { inp.focus(); inp.select(); }
+                    }
+                });
 
                 // Auto-apply keyword + tab from URL params (e.g. from project detail page)
                 const _urlParams = new URLSearchParams(window.location.search);
@@ -1365,4 +1434,4 @@
                 if (urlTab === 'timeline') { switchTab('timeline'); }
             });
         </script>
-        {% endblock %}
+        {% endblock %}

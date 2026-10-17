@@ -3,41 +3,57 @@
 {% block title %}管理者登入{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-    <div class="w-full max-w-[400px] bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+<div class="flex-1 flex items-center justify-center p-6">
+    <div class="w-full max-w-[400px] bg-surface rounded-lg border border-line p-8">
         <div class="flex flex-col items-center gap-3 mb-8">
-            <div class="p-3 rounded-full bg-slate-100">
-                <span class="material-symbols-outlined text-3xl text-slate-500">lock</span>
+            <div class="p-4 rounded-xl bg-primary/10">
+                <span class="material-symbols-outlined text-4xl text-primary">lock</span>
             </div>
-            <h1 class="text-2xl font-bold text-slate-900">管理者登入</h1>
-            <p class="text-sm text-slate-500">請輸入管理密碼以繼續</p>
+            <h1 class="text-2xl font-bold text-ink">管理者登入</h1>
+            <p class="text-sm text-ink-muted">請輸入管理密碼以存取資料庫管理</p>
         </div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="mb-4 p-3 rounded-lg text-sm font-medium {% if category == 'success' %}bg-green-100 text-green-700 border border-green-200{% else %}bg-red-100 text-red-700 border border-red-200{% endif %}">
-            {{ message }}
-        </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
 
-        <form method="POST" action="{{ url_for('manage_db_login') }}" class="flex flex-col gap-4">
-            <input name="password" type="password"
-                class="form-input rounded-lg border-slate-300 bg-white h-11 px-4 text-sm shadow-sm w-full text-center tracking-[0.3em]"
-                placeholder="請輸入密碼" required autofocus>
-            <button type="submit"
-                class="w-full h-11 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors shadow-sm">
+        <form method="POST" action="{{ url_for('manage_db_login') }}" class="flex flex-col gap-4" id="login-form">
+            <div class="relative">
+                <input name="password" type="password" id="login-password"
+                    class="input w-full text-center tracking-[0.3em] pr-11"
+                    placeholder="請輸入密碼" required autofocus>
+                <button type="button" id="toggle-password" aria-label="顯示或隱藏密碼" title="顯示或隱藏密碼"
+                    class="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-muted hover:text-ink">
+                    <span class="material-symbols-outlined text-[20px]" id="toggle-password-icon">visibility</span>
+                </button>
+            </div>
+            <button type="submit" id="login-submit"
+                class="btn btn-primary w-full">
                 進入管理
             </button>
         </form>
 
+        <p class="mt-5 flex items-start gap-2 rounded-lg bg-surface-muted px-3 py-2 text-sm text-ink-muted">
+            <span class="material-symbols-outlined text-[18px] mt-0.5">info</span>
+            登入失敗會記錄來源 IP。
+        </p>
+
         <div class="mt-6 text-center">
-            <a href="{{ url_for('index') }}" class="text-sm text-slate-400 hover:text-slate-600 transition-colors">
+            <a href="{{ url_for('index') }}" class="text-sm text-ink-muted hover:text-ink transition-colors">
                 ← 返回首頁
             </a>
         </div>
     </div>
 </div>
+<script>
+    document.getElementById('toggle-password').addEventListener('click', function () {
+        const input = document.getElementById('login-password');
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        document.getElementById('toggle-password-icon').textContent = show ? 'visibility_off' : 'visibility';
+    });
+    document.getElementById('login-form').addEventListener('submit', function (e) {
+        const btn = document.getElementById('login-submit');
+        if (btn.disabled || !this.checkValidity()) return;
+        // defer so the form value is still submitted
+        setTimeout(() => { btn.disabled = true; btn.textContent = '驗證中…'; }, 0);
+    });
+</script>
 {% endblock %}

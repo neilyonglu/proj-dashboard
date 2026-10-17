@@ -2,48 +2,50 @@
 
 {% block title %}資料庫管理 - 專案管理系統{% endblock %}
 
+{% block body_class %}h-screen{% endblock %}
+
 {% block content %}
-<div class="layout-container flex h-screen grow flex-col bg-slate-50 overflow-hidden">
+<div class="layout-container flex min-h-0 grow flex-col overflow-hidden">
     <!-- Simple header without full navbar -->
-    <div class="flex items-center justify-between px-6 py-3 border-b border-slate-200 bg-white shrink-0">
+    <div class="flex items-center justify-between px-6 py-3 border-b border-line bg-surface shrink-0">
         <div class="flex items-center gap-3">
-            <a href="{{ url_for('index') }}" class="text-slate-400 hover:text-slate-600 transition-colors" title="返回首頁">
+            <a href="{{ url_for('index') }}" class="text-ink-muted hover:text-ink transition-colors" title="返回首頁">
                 <span class="material-symbols-outlined text-[20px]">arrow_back</span>
             </a>
             <a href="{{ url_for('index') }}" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
                 <span class="material-symbols-outlined text-[22px] text-primary">database</span>
-                <h2 class="text-slate-900 text-lg font-bold leading-tight">資料庫管理</h2>
+                <h2 class="text-ink text-lg font-bold leading-tight">資料庫管理</h2>
             </a>
         </div>
         <div class="flex items-center gap-2">
             <form action="{{ url_for('backup_now') }}" method="POST" class="inline">
                 <button type="submit"
-                    class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5 border border-slate-200"
+                    class="btn btn-secondary"
                     title="立即建立一份資料庫備份（保留最近 10 份）">
                     <span class="material-symbols-outlined text-[15px]">backup</span>立即備份
                 </button>
             </form>
             <a href="{{ url_for('backup_download') }}"
-                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-1.5"
+                class="btn btn-primary"
                 title="下載目前資料庫檔案">
                 <span class="material-symbols-outlined text-[15px]">download</span>下載備份
             </a>
             <a href="{{ url_for('export_all') }}"
-                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5 border border-slate-200"
+                class="btn btn-secondary"
                 title="匯出整個資料庫為一個 Excel 檔（每張表一個分頁）">
                 <span class="material-symbols-outlined text-[15px]">table_view</span>全部匯出 (Excel)
             </a>
             <button type="button" onclick="openImportAllModal()"
-                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5 border border-slate-200"
+                class="btn btn-secondary"
                 title="從「全部匯出」產生的 .xlsx 檔匯入整個資料庫">
                 <span class="material-symbols-outlined text-[15px]">upload_file</span>全部匯入 (Excel)
             </button>
             <form action="{{ url_for('backup_restore') }}" method="POST" enctype="multipart/form-data" class="inline"
                 id="restore-form">
                 <input type="file" name="db_file" accept=".db" class="hidden" id="restore-file-input"
-                    onchange="if(this.files.length){ if(confirm('確定要用「'+this.files[0].name+'」還原資料庫嗎？\n\n目前的資料會先自動備份(pre_restore)，再被覆蓋。')){ document.getElementById('restore-form').submit(); } else { this.value=''; } }" />
+                    onchange="restoreFileChosen(this)" />
                 <button type="button" onclick="document.getElementById('restore-file-input').click()"
-                    class="px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors flex items-center gap-1.5 border border-amber-200"
+                    class="btn btn-secondary text-status-waiting-fg"
                     title="上傳 .db 備份檔以還原資料庫">
                     <span class="material-symbols-outlined text-[15px]">restore</span>還原備份
                 </button>
@@ -52,36 +54,36 @@
     </div>
 
     <!-- Tab buttons -->
-    <div class="flex items-center px-6 py-2 border-b border-slate-200 bg-white z-10 shrink-0">
-        <div class="flex items-center gap-6">
-            <button id="db-btn-projects" onclick="switchDbTab('projects')"
-                class="flex items-center gap-2 pb-2 text-sm font-bold text-primary border-b-2 border-primary -mb-[9px] transition-colors">
+    <div class="flex items-center px-6 pt-2 border-b border-line bg-surface z-10 shrink-0">
+        <div class="flex items-center gap-6" data-tabs>
+            <button id="db-btn-projects" onclick="switchDbTab('projects')" aria-selected="true"
+                class="flex items-center gap-2 pb-2 text-sm font-bold text-primary transition-colors">
                 <span class="material-symbols-outlined text-[18px]">folder</span> 專案
                 <span class="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full">{{ projects | length
                     }}</span>
             </button>
-            <button id="db-btn-tasks" onclick="switchDbTab('tasks')"
-                class="flex items-center gap-2 pb-2 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent -mb-[9px] transition-colors">
+            <button id="db-btn-tasks" onclick="switchDbTab('tasks')" aria-selected="false"
+                class="flex items-center gap-2 pb-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors">
                 <span class="material-symbols-outlined text-[18px]">task</span> 工作紀錄
-                <span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">{{ tasks | length
+                <span class="bg-surface-muted text-ink-muted text-xs font-bold px-2 py-0.5 rounded-full">{{ tasks | length
                     }}</span>
             </button>
-            <button id="db-btn-reps" onclick="switchDbTab('reps')"
-                class="flex items-center gap-2 pb-2 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent -mb-[9px] transition-colors">
+            <button id="db-btn-reps" onclick="switchDbTab('reps')" aria-selected="false"
+                class="flex items-center gap-2 pb-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors">
                 <span class="material-symbols-outlined text-[18px]">people</span> 業務代表
-                <span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">{{ reps | length
+                <span class="bg-surface-muted text-ink-muted text-xs font-bold px-2 py-0.5 rounded-full">{{ reps | length
                     }}</span>
             </button>
-            <button id="db-btn-personnel" onclick="switchDbTab('personnel')"
-                class="flex items-center gap-2 pb-2 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent -mb-[9px] transition-colors">
+            <button id="db-btn-personnel" onclick="switchDbTab('personnel')" aria-selected="false"
+                class="flex items-center gap-2 pb-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors">
                 <span class="material-symbols-outlined text-[18px]">badge</span> 參與人員
-                <span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">{{ personnel |
+                <span class="bg-surface-muted text-ink-muted text-xs font-bold px-2 py-0.5 rounded-full">{{ personnel |
                     length }}</span>
             </button>
-            <button id="db-btn-categories" onclick="switchDbTab('categories')"
-                class="flex items-center gap-2 pb-2 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent -mb-[9px] transition-colors">
+            <button id="db-btn-categories" onclick="switchDbTab('categories')" aria-selected="false"
+                class="flex items-center gap-2 pb-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors">
                 <span class="material-symbols-outlined text-[18px]">category</span> 專案種類
-                <span class="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">{{ categories |
+                <span class="bg-surface-muted text-ink-muted text-xs font-bold px-2 py-0.5 rounded-full">{{ categories |
                     length }}</span>
             </button>
         </div>
@@ -90,28 +92,28 @@
     <!-- Shared Import CSV Modal -->
     <div id="import-modal"
         class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+        <div class="bg-surface rounded-lg shadow-lg w-full max-w-md mx-4 p-6 anim-pop">
             <div class="flex items-center justify-between mb-5">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-[22px]">upload_file</span>
-                    <h3 class="text-base font-bold text-slate-900" id="modal-title">匯入 CSV</h3>
+                    <h3 class="text-base font-bold text-ink" id="modal-title">匯入 CSV</h3>
                 </div>
-                <button onclick="closeImportModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <button onclick="closeImportModal()" class="text-ink-muted hover:text-ink transition-colors">
                     <span class="material-symbols-outlined text-[20px]">close</span>
                 </button>
             </div>
-            <p class="text-xs text-slate-500 mb-4 bg-slate-50 rounded-lg px-3 py-2" id="modal-hint">請上傳與系統匯出相同格式的 CSV
+            <p class="text-xs text-ink-muted mb-4 bg-surface-muted rounded-lg px-3 py-2" id="modal-hint">請上傳與系統匯出相同格式的 CSV
                 檔案。</p>
 
             <form id="import-form" action="" method="POST" enctype="multipart/form-data">
                 <!-- File picker -->
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">選擇 CSV 檔案</label>
+                    <label class="block text-sm font-medium text-ink mb-1.5">選擇 CSV 檔案</label>
                     <div id="drop-zone"
-                        class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
+                        class="border-2 border-dashed border-line rounded-lg p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
                         onclick="document.getElementById('csv-file-input').click()">
-                        <span class="material-symbols-outlined text-slate-400 text-[36px] mb-1">description</span>
-                        <p class="text-sm text-slate-500" id="drop-label">點擊選擇或拖曳 CSV 檔案到這裡</p>
+                        <span class="material-symbols-outlined text-ink-muted text-[36px] mb-1">description</span>
+                        <p class="text-sm text-ink-muted" id="drop-label">點擊選擇或拖曳 CSV 檔案到這裡</p>
                     </div>
                     <input type="file" id="csv-file-input" name="csv_file" accept=".csv" class="hidden"
                         onchange="handleFileSelect(this)">
@@ -119,22 +121,22 @@
 
                 <!-- Duplicate handling (hidden for tasks) -->
                 <div class="mb-5" id="modal-mode-section">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">遇到重複資料時</label>
+                    <label class="block text-sm font-medium text-ink mb-2">遇到重複資料時</label>
                     <div class="flex flex-col gap-2">
                         <label
-                            class="flex items-start gap-3 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                            class="flex items-start gap-3 p-3 rounded-lg border border-line cursor-pointer hover:bg-surface-muted transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
                             <input type="radio" name="import_mode" value="skip" checked class="mt-0.5 accent-primary">
                             <div>
-                                <p class="text-sm font-medium text-slate-800">略過重複</p>
-                                <p class="text-xs text-slate-500">已存在的資料保持不變，只新增沒有的</p>
+                                <p class="text-sm font-medium text-ink">略過重複</p>
+                                <p class="text-xs text-ink-muted">已存在的資料保持不變，只新增沒有的</p>
                             </div>
                         </label>
                         <label
-                            class="flex items-start gap-3 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
+                            class="flex items-start gap-3 p-3 rounded-lg border border-line cursor-pointer hover:bg-surface-muted transition-colors has-[:checked]:border-amber-500 has-[:checked]:bg-amber-500/10">
                             <input type="radio" name="import_mode" value="overwrite" class="mt-0.5 accent-amber-500">
                             <div>
-                                <p class="text-sm font-medium text-slate-800">覆蓋更新</p>
-                                <p class="text-xs text-slate-500 " id="overwrite-desc">用 CSV 的內容覆蓋同名資料</p>
+                                <p class="text-sm font-medium text-ink">覆蓋更新</p>
+                                <p class="text-xs text-ink-muted" id="overwrite-desc">用 CSV 的內容覆蓋同名資料</p>
                             </div>
                         </label>
                     </div>
@@ -143,11 +145,11 @@
                 <!-- Wipe-before-import (tasks only) -->
                 <div class="mb-5 hidden" id="modal-wipe-section">
                     <label
-                        class="flex items-start gap-3 p-3 rounded-lg border border-red-200 bg-red-50 cursor-pointer">
+                        class="flex items-start gap-3 p-3 rounded-lg border border-red-500/30 bg-red-500/10 cursor-pointer">
                         <input type="checkbox" name="wipe_before_import" value="1" id="wipe-before-import-checkbox"
                             class="mt-0.5 accent-red-600">
                         <div>
-                            <p class="text-sm font-medium text-red-700" id="wipe-title">匯入前清空所有工作紀錄</p>
+                            <p class="text-sm font-medium text-red-600 dark:text-red-400" id="wipe-title">匯入前清空所有工作紀錄</p>
                             <p class="text-xs text-red-500" id="wipe-desc">會先自動備份資料庫，再清空全部工作紀錄，然後匯入這份 CSV。此操作無法復原（可從備份還原）。</p>
                         </div>
                     </label>
@@ -155,11 +157,11 @@
 
                 <div class="flex gap-3">
                     <button type="button" onclick="closeImportModal()"
-                        class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+                        class="btn btn-secondary flex-1">
                         取消
                     </button>
                     <button type="submit" id="import-submit-btn"
-                        class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="btn btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled>
                         <span class="material-symbols-outlined text-[16px] align-middle mr-1">upload</span>開始匯入
                     </button>
@@ -168,32 +170,6 @@
         </div>
     </div>
 
-    <!-- Flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="px-6 py-2" id="flash-container">
-        {% for category, message in messages %}
-        <div
-            class="flash-msg p-4 rounded-lg shadow-sm text-sm font-medium transition-all duration-500 {% if category == 'success' %}bg-green-100 text-green-700 border border-green-200{% else %}bg-red-100 text-red-700 border border-red-200{% endif %}">
-            {{ message }}
-        </div>
-        {% endfor %}
-    </div>
-    <script>
-        setTimeout(function () {
-            var msgs = document.querySelectorAll('.flash-msg');
-            msgs.forEach(function (m) {
-                m.style.opacity = '0';
-                m.style.transform = 'translateY(-10px)';
-            });
-            setTimeout(function () {
-                var c = document.getElementById('flash-container');
-                if (c) c.remove();
-            }, 500);
-        }, 3000);
-    </script>
-    {% endif %}
-    {% endwith %}
 
     <!-- Content area -->
     <div class="flex-1 overflow-auto p-6">
@@ -201,105 +177,105 @@
         <div id="db-view-projects">
             <div class="mb-4 flex items-center gap-3">
                 <input type="text" id="search-projects" onkeyup="filterProjects()"
-                    class="form-input rounded-lg border-slate-300 bg-white h-9 px-4 text-sm shadow-sm w-[300px]"
-                    placeholder="搜尋專案名稱...">
+                    class="input w-[300px]"
+                    placeholder="搜尋專案名稱或業務代表...">
                 <div class="relative" id="status-filter-wrapper">
                     <button type="button" onclick="toggleStatusFilterPanel()"
-                        class="form-select rounded-lg border-slate-300 bg-white h-9 px-3 text-sm shadow-sm flex items-center gap-1">
+                        class="btn btn-secondary">
                         <span id="filter-projects-status-label">全部狀態</span>
                         <span class="material-symbols-outlined text-[16px]">expand_more</span>
                     </button>
                     <div id="filter-projects-status-panel"
-                        class="hidden absolute z-20 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg p-2 flex flex-col gap-1 whitespace-nowrap">
-                        <label class="flex items-center gap-1.5 text-sm cursor-pointer px-1 py-0.5 hover:bg-slate-50 rounded">
-                            <input type="checkbox" class="status-filter-checkbox rounded border-slate-300" value="進行中"
-                                onchange="filterProjects()">進行中</label>
-                        <label class="flex items-center gap-1.5 text-sm cursor-pointer px-1 py-0.5 hover:bg-slate-50 rounded">
-                            <input type="checkbox" class="status-filter-checkbox rounded border-slate-300" value="等待中"
-                                onchange="filterProjects()">等待中</label>
-                        <label class="flex items-center gap-1.5 text-sm cursor-pointer px-1 py-0.5 hover:bg-slate-50 rounded">
-                            <input type="checkbox" class="status-filter-checkbox rounded border-slate-300" value="暫緩中"
-                                onchange="filterProjects()">暫緩中</label>
-                        <label class="flex items-center gap-1.5 text-sm cursor-pointer px-1 py-0.5 hover:bg-slate-50 rounded">
-                            <input type="checkbox" class="status-filter-checkbox rounded border-slate-300" value="已結案"
-                                onchange="filterProjects()">已結案</label>
+                        class="hidden anim-dropdown absolute z-20 mt-1 bg-surface border border-line rounded-lg shadow-lg p-2 flex flex-col gap-1 whitespace-nowrap">
+                        <label class="flex items-center gap-1.5 text-sm cursor-pointer px-1 py-0.5 hover:bg-surface-muted rounded">
+                            <input type="checkbox" class="status-filter-checkbox rounded border-line" value="進行中"
+                                onchange="filterProjects()">進行中 <span class="text-ink-muted" data-status-count="進行中"></span></label>
+                        <label class="flex items-center gap-1.5 text-sm cursor-pointer px-1 py-0.5 hover:bg-surface-muted rounded">
+                            <input type="checkbox" class="status-filter-checkbox rounded border-line" value="等待中"
+                                onchange="filterProjects()">等待中 <span class="text-ink-muted" data-status-count="等待中"></span></label>
+                        <label class="flex items-center gap-1.5 text-sm cursor-pointer px-1 py-0.5 hover:bg-surface-muted rounded">
+                            <input type="checkbox" class="status-filter-checkbox rounded border-line" value="暫緩中"
+                                onchange="filterProjects()">暫緩中 <span class="text-ink-muted" data-status-count="暫緩中"></span></label>
+                        <label class="flex items-center gap-1.5 text-sm cursor-pointer px-1 py-0.5 hover:bg-surface-muted rounded">
+                            <input type="checkbox" class="status-filter-checkbox rounded border-line" value="已結案"
+                                onchange="filterProjects()">已結案 <span class="text-ink-muted" data-status-count="已結案"></span></label>
                     </div>
                 </div>
                 <div class="ml-auto flex items-center gap-2">
                     <button onclick="openImportModal('專案', '{{ url_for('import_db') }}', true, '覆蓋同名專案的資料（工作紀錄不受影響）')"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-1.5">
+                        class="btn btn-primary">
                         <span class="material-symbols-outlined text-[15px]">upload</span>匯入
                     </button>
                     <a href="{{ url_for('export_db') }}" target="_blank"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5 border border-slate-200">
+                        class="btn btn-secondary">
                         <span class="material-symbols-outlined text-[15px]">download</span>匯出
                     </a>
                 </div>
             </div>
-            <div class="border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+            <div class="border border-line rounded-lg overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left whitespace-nowrap border-collapse" id="table-projects">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[13px] font-semibold">
-                                <th class="px-4 py-3 border-r border-slate-200 w-[60px]">ID</th>
-                                <th class="px-4 py-3 border-r border-slate-200 min-w-[180px]">專案名稱</th>
-                                <th class="px-4 py-3 border-r border-slate-200">狀態</th>
-                                <th class="px-4 py-3 border-r border-slate-200">業務代表</th>
-                                <th class="px-4 py-3 border-r border-slate-200">設備</th>
-                                <th class="px-4 py-3 border-r border-slate-200">起始日</th>
-                                <th class="px-4 py-3 border-r border-slate-200">結束日</th>
-                                <th class="px-4 py-3 border-r border-slate-200 min-w-[200px]">描述</th>
-                                <th class="px-4 py-3 border-r border-slate-200 min-w-[200px]">備註</th>
+                            <tr class="bg-surface-muted border-b border-line text-ink-muted text-sm font-semibold">
+                                <th class="px-4 py-3 border-r border-line w-[60px]">ID</th>
+                                <th class="px-4 py-3 border-r border-line min-w-[180px]">專案名稱</th>
+                                <th class="px-4 py-3 border-r border-line">狀態</th>
+                                <th class="px-4 py-3 border-r border-line">業務代表</th>
+                                <th class="px-4 py-3 border-r border-line">設備</th>
+                                <th class="px-4 py-3 border-r border-line">起始日</th>
+                                <th class="px-4 py-3 border-r border-line">結束日</th>
+                                <th class="px-4 py-3 border-r border-line min-w-[200px]">描述</th>
+                                <th class="px-4 py-3 border-r border-line min-w-[200px]">備註</th>
                                 <th class="px-4 py-3 w-[100px]">操作</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm text-slate-700">
+                        <tbody class="divide-y divide-line text-sm text-ink">
                             {% for proj in projects %}
-                            <tr class="hover:bg-slate-50 transition-colors align-top searchable-row" data-status="{{ proj.status }}">
-                                <td class="px-4 py-3 text-slate-400 font-mono text-xs">{{ proj.id }}</td>
-                                <td class="px-4 py-3 font-medium text-slate-900 search-field">{{ proj.name }}</td>
+                            <tr class="hover:bg-surface-muted transition-colors align-top searchable-row" data-status="{{ proj.status }}">
+                                <td class="px-4 py-3 text-ink-muted font-mono text-xs">{{ proj.id }}</td>
+                                <td class="px-4 py-3 font-medium text-ink"><span class="search-field">{{ proj.name }}</span>{% if proj.category %}<span class="ml-2 rounded bg-surface-muted px-1.5 py-0.5 text-xs font-normal text-ink-muted">{{ proj.category }}</span>{% endif %}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex flex-wrap gap-1">
                                         {% for s in proj.status.split(',') %}
                                         {% if s == '進行中' %}
                                         <span
-                                            class="px-2 py-1 bg-amber-100 text-amber-800 rounded font-medium text-xs">進行中</span>
+                                            class="px-2 py-1 bg-amber-500/15 text-amber-700 dark:text-amber-300 rounded font-medium text-xs">進行中</span>
                                         {% elif s == '暫緩中' %}
                                         <span
-                                            class="px-2 py-1 bg-blue-100 text-blue-800 rounded font-medium text-xs">暫緩中</span>
+                                            class="px-2 py-1 bg-blue-500/15 text-blue-700 dark:text-blue-300 rounded font-medium text-xs">暫緩中</span>
                                         {% elif s == '等待中' %}
                                         <span
-                                            class="px-2 py-1 bg-pink-100 text-pink-800 rounded font-medium text-xs">等待中</span>
+                                            class="px-2 py-1 bg-pink-500/15 text-pink-700 dark:text-pink-300 rounded font-medium text-xs">等待中</span>
                                         {% elif s == '已結案' %}
                                         <span
-                                            class="px-2 py-1 bg-green-100 text-green-800 rounded font-medium text-xs">已結案</span>
+                                            class="px-2 py-1 bg-green-500/15 text-green-700 dark:text-green-300 rounded font-medium text-xs">已結案</span>
                                         {% else %}
                                         <span
-                                            class="px-2 py-1 bg-slate-100 text-slate-800 rounded font-medium text-xs">{{
+                                            class="px-2 py-1 bg-surface-muted text-ink rounded font-medium text-xs">{{
                                             s }}</span>
                                         {% endif %}
                                         {% endfor %}
                                     </div>
                                 </td>
-                                <td class="px-4 py-3">{{ proj.rep }}</td>
+                                <td class="px-4 py-3 search-field">{{ proj.rep }}</td>
                                 <td class="px-4 py-3">{{ proj.equipment or '' }}</td>
-                                <td class="px-4 py-3 text-slate-500">{{ proj.start_date.strftime('%Y/%m/%d') }}</td>
-                                <td class="px-4 py-3 text-slate-500">{{ proj.end_date.strftime('%Y/%m/%d') if
+                                <td class="px-4 py-3 text-ink-muted">{{ proj.start_date.strftime('%Y/%m/%d') }}</td>
+                                <td class="px-4 py-3 text-ink-muted">{{ proj.end_date.strftime('%Y/%m/%d') if
                                     proj.end_date else '-' }}</td>
                                 <td class="px-4 py-3 truncate max-w-[200px]">{{ proj.description or '' }}</td>
-                                <td class="px-4 py-3 truncate max-w-[200px] text-slate-500">{{ proj.notes or '' }}</td>
+                                <td class="px-4 py-3 truncate max-w-[200px] text-ink-muted">{{ proj.notes or '' }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-1">
                                         <a href="{{ url_for('edit_project', id=proj.id) }}"
-                                            class="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors"
+                                            class="text-primary hover:bg-surface-muted p-1.5 rounded transition-colors"
                                             title="編輯">
                                             <span class="material-symbols-outlined text-[16px]">edit</span>
                                         </a>
                                         <form action="{{ url_for('delete_project', id=proj.id) }}" method="POST"
-                                            onsubmit="return confirm('確定要刪除「{{ proj.name }}」專案嗎？\n\n❗ 相關的工作紀錄也會一併刪除，此操作無法復原。');"
+                                            data-confirm="確定要刪除「{{ proj.name }}」專案嗎？&#10;&#10;❗ 相關的 {{ proj.tasks|length }} 筆工作紀錄也會一併刪除，此操作無法復原。"
                                             class="inline">
                                             <button type="submit"
-                                                class="text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors"
+                                                class="text-red-500 hover:bg-red-500/10 p-1.5 rounded transition-colors"
                                                 title="刪除">
                                                 <span class="material-symbols-outlined text-[16px]">delete</span>
                                             </button>
@@ -309,12 +285,13 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="10" class="px-4 py-8 text-center text-slate-500">目前沒有專案資料。</td>
+                                <td colspan="10" class="px-4 py-8 text-center text-ink-muted">目前沒有專案資料。</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                <div class="pager flex flex-wrap items-center justify-between gap-2 border-t border-line bg-surface px-4 py-3 text-sm text-ink-muted"></div>
             </div>
         </div>
 
@@ -322,63 +299,63 @@
         <div id="db-view-tasks" class="hidden">
             <div class="mb-4 flex items-center gap-3">
                 <input type="text" id="search-tasks" onkeyup="searchTable('tasks')"
-                    class="form-input rounded-lg border-slate-300 bg-white h-9 px-4 text-sm shadow-sm w-[300px]"
+                    class="input w-[300px]"
                     placeholder="搜尋工作紀錄...">
                 <div class="ml-auto flex items-center gap-2">
                     <button
                         onclick="openImportModal('工作紀錄', '{{ url_for('import_tasks') }}', false, '重複資料（所有欄位皆相同）會自動略過，不會重複匯入。', true)"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-1.5">
+                        class="btn btn-primary">
                         <span class="material-symbols-outlined text-[15px]">upload</span>匯入
                     </button>
                     <a href="{{ url_for('export_tasks') }}" target="_blank"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5 border border-slate-200">
+                        class="btn btn-secondary">
                         <span class="material-symbols-outlined text-[15px]">download</span>匯出
                     </a>
                 </div>
             </div>
-            <div class="border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+            <div class="border border-line rounded-lg overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left whitespace-nowrap border-collapse" id="table-tasks">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[13px] font-semibold">
-                                <th class="px-4 py-3 border-r border-slate-200 w-[60px]">ID</th>
-                                <th class="px-4 py-3 border-r border-slate-200">所屬專案</th>
-                                <th class="px-4 py-3 border-r border-slate-200">人員</th>
-                                <th class="px-4 py-3 border-r border-slate-200">日期</th>
-                                <th class="px-4 py-3 border-r border-slate-200">工作天數</th>
-                                <th class="px-4 py-3 border-r border-slate-200 text-center">日班</th>
-                                <th class="px-4 py-3 border-r border-slate-200 text-center">加班</th>
-                                <th class="px-4 py-3 border-r border-slate-200 text-center">夜班</th>
-                                <th class="px-4 py-3 border-r border-slate-200 min-w-[300px]">工作描述</th>
-                                <th class="px-4 py-3 border-r border-slate-200 min-w-[200px]">備註</th>
+                            <tr class="bg-surface-muted border-b border-line text-ink-muted text-sm font-semibold">
+                                <th class="px-4 py-3 border-r border-line w-[60px]">ID</th>
+                                <th class="px-4 py-3 border-r border-line">所屬專案</th>
+                                <th class="px-4 py-3 border-r border-line">人員</th>
+                                <th class="px-4 py-3 border-r border-line">日期</th>
+                                <th class="px-4 py-3 border-r border-line">工作天數</th>
+                                <th class="px-4 py-3 border-r border-line text-center">日班</th>
+                                <th class="px-4 py-3 border-r border-line text-center">加班</th>
+                                <th class="px-4 py-3 border-r border-line text-center">夜班</th>
+                                <th class="px-4 py-3 border-r border-line min-w-[300px]">工作描述</th>
+                                <th class="px-4 py-3 border-r border-line min-w-[200px]">備註</th>
                                 <th class="px-4 py-3 w-[80px]">操作</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm text-slate-700">
+                        <tbody class="divide-y divide-line text-sm text-ink">
                             {% for task in tasks %}
-                            <tr class="hover:bg-slate-50 transition-colors align-top searchable-row">
-                                <td class="px-4 py-3 text-slate-400 font-mono text-xs">{{ task.id }}</td>
-                                <td class="px-4 py-3 font-medium text-slate-900 search-field">{{ task.project.name if
+                            <tr class="hover:bg-surface-muted transition-colors align-top searchable-row">
+                                <td class="px-4 py-3 text-ink-muted font-mono text-xs">{{ task.id }}</td>
+                                <td class="px-4 py-3 font-medium text-ink search-field">{{ task.project.name if
                                     task.project else 'N/A' }}</td>
                                 <td class="px-4 py-3 search-field">{{ task.personnel }}</td>
-                                <td class="px-4 py-3 text-slate-500">{{ task.date.strftime('%Y/%m/%d') }}</td>
+                                <td class="px-4 py-3 text-ink-muted">{{ task.date.strftime('%Y/%m/%d') }}</td>
                                 <td class="px-4 py-3">{{ task.work_days }}</td>
-                                <td class="px-4 py-3 text-center text-slate-500">{{ task.day_hours if task.day_hours is not none else '-' }}</td>
-                                <td class="px-4 py-3 text-center text-slate-500">{{ task.overtime_hours if task.overtime_hours is not none else '-' }}</td>
-                                <td class="px-4 py-3 text-center text-slate-500">{{ task.night_hours if task.night_hours is not none else '-' }}</td>
+                                <td class="px-4 py-3 text-center text-ink-muted">{{ task.day_hours if task.day_hours is not none else '-' }}</td>
+                                <td class="px-4 py-3 text-center text-ink-muted">{{ task.overtime_hours if task.overtime_hours is not none else '-' }}</td>
+                                <td class="px-4 py-3 text-center text-ink-muted">{{ task.night_hours if task.night_hours is not none else '-' }}</td>
                                 <td class="px-4 py-3 whitespace-normal">{{ task.description }}</td>
-                                <td class="px-4 py-3 text-slate-500 whitespace-normal">{{ task.notes or '' }}</td>
+                                <td class="px-4 py-3 text-ink-muted whitespace-normal">{{ task.notes or '' }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-1">
                                         <a href="{{ url_for('edit_task', id=task.id, redirect_to=url_for('manage_db')) }}"
-                                            class="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors"
+                                            class="text-primary hover:bg-surface-muted p-1.5 rounded transition-colors"
                                             title="編輯">
                                             <span class="material-symbols-outlined text-[16px]">edit</span>
                                         </a>
                                         <form action="{{ url_for('delete_task', id=task.id) }}" method="POST"
-                                            onsubmit="return confirm('確定要刪除此工作紀錄嗎？');" class="inline">
+                                            data-confirm="確定要刪除此工作紀錄嗎？" class="inline">
                                             <button type="submit"
-                                                class="text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors"
+                                                class="text-red-500 hover:bg-red-500/10 p-1.5 rounded transition-colors"
                                                 title="刪除">
                                                 <span class="material-symbols-outlined text-[16px]">delete</span>
                                             </button>
@@ -388,12 +365,13 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="11" class="px-4 py-8 text-center text-slate-500">目前沒有工作紀錄。</td>
+                                <td colspan="11" class="px-4 py-8 text-center text-ink-muted">目前沒有工作紀錄。</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                <div class="pager flex flex-wrap items-center justify-between gap-2 border-t border-line bg-surface px-4 py-3 text-sm text-ink-muted"></div>
             </div>
         </div>
 
@@ -401,51 +379,52 @@
         <div id="db-view-reps" class="hidden">
             <div class="mb-4 flex items-center gap-3">
                 <input type="text" id="search-reps" onkeyup="searchTable('reps')"
-                    class="form-input rounded-lg border-slate-300 bg-white h-9 px-4 text-sm shadow-sm w-[300px]"
+                    class="input w-[300px]"
                     placeholder="搜尋業務代表...">
                 <a href="{{ url_for('manage_reps') }}"
-                    class="px-3 py-1.5 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-colors border border-primary/30">
+                    class="btn btn-ghost text-primary border-primary/30">
                     <span class="material-symbols-outlined text-[14px] align-middle mr-0.5">settings</span>管理業務代表
                 </a>
                 <div class="ml-auto flex items-center gap-2">
                     <button
                         onclick="openImportModal('業務代表', '{{ url_for('import_reps') }}', true, '覆蓋更新可修改離職日期；舊檔未含離職日期欄時保留原值。')"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-1.5">
+                        class="btn btn-primary">
                         <span class="material-symbols-outlined text-[15px]">upload</span>匯入
                     </button>
                     <a href="{{ url_for('export_reps') }}" target="_blank"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5 border border-slate-200">
+                        class="btn btn-secondary">
                         <span class="material-symbols-outlined text-[15px]">download</span>匯出
                     </a>
                 </div>
             </div>
-            <div class="border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+            <div class="border border-line rounded-lg overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left whitespace-nowrap border-collapse" id="table-reps">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[13px] font-semibold">
-                                <th class="px-4 py-3 border-r border-slate-200 w-[60px]">ID</th>
+                            <tr class="bg-surface-muted border-b border-line text-ink-muted text-sm font-semibold">
+                                <th class="px-4 py-3 border-r border-line w-[60px]">ID</th>
                                 <th class="px-4 py-3">名稱</th>
                                 <th class="px-4 py-3">狀態</th>
                                 <th class="px-4 py-3">離職日期</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm text-slate-700">
+                        <tbody class="divide-y divide-line text-sm text-ink">
                             {% for r in reps %}
-                            <tr class="hover:bg-slate-50 transition-colors searchable-row">
-                                <td class="px-4 py-3 text-slate-400 font-mono text-xs">{{ r.id }}</td>
-                                <td class="px-4 py-3 font-medium text-slate-900 search-field">{{ r.name }}</td>
-                                <td class="px-4 py-3 search-field {{ 'text-rose-600' if r.resigned_date else 'text-emerald-600' }}">{{ '已離職' if r.resigned_date else '在職' }}</td>
+                            <tr class="hover:bg-surface-muted transition-colors searchable-row">
+                                <td class="px-4 py-3 text-ink-muted font-mono text-xs">{{ r.id }}</td>
+                                <td class="px-4 py-3 font-medium text-ink search-field">{{ r.name }}</td>
+                                <td class="px-4 py-3 search-field {{ 'text-rose-600 dark:text-rose-400' if r.resigned_date else 'text-emerald-600 dark:text-emerald-400' }}">{{ '已離職' if r.resigned_date else '在職' }}</td>
                                 <td class="px-4 py-3 search-field">{{ r.resigned_date.strftime('%Y/%m/%d') if r.resigned_date else '-' }}</td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="4" class="px-4 py-8 text-center text-slate-500">目前沒有業務代表資料。</td>
+                                <td colspan="4" class="px-4 py-8 text-center text-ink-muted">目前沒有業務代表資料。</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                <div class="pager flex flex-wrap items-center justify-between gap-2 border-t border-line bg-surface px-4 py-3 text-sm text-ink-muted"></div>
             </div>
         </div>
 
@@ -453,65 +432,66 @@
         <div id="db-view-personnel" class="hidden">
             <div class="mb-4 flex items-center gap-3">
                 <input type="text" id="search-personnel" onkeyup="searchTable('personnel')"
-                    class="form-input rounded-lg border-slate-300 bg-white h-9 px-4 text-sm shadow-sm w-[300px]"
+                    class="input w-[300px]"
                     placeholder="搜尋參與人員...">
                 <a href="{{ url_for('manage_personnel') }}"
-                    class="px-3 py-1.5 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-colors border border-primary/30">
+                    class="btn btn-ghost text-primary border-primary/30">
                     <span class="material-symbols-outlined text-[14px] align-middle mr-0.5">settings</span>管理參與人員
                 </a>
                 <div class="ml-auto flex items-center gap-2">
                     <button
                         onclick="openImportModal('參與人員', '{{ url_for('import_personnel') }}', true, '覆蓋更新可修改顯示名稱與離職日期；舊檔未含離職日期欄時保留原值（大頭貼不受影響）。')"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-1.5">
+                        class="btn btn-primary">
                         <span class="material-symbols-outlined text-[15px]">upload</span>匯入
                     </button>
                     <a href="{{ url_for('export_personnel') }}" target="_blank"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5 border border-slate-200">
+                        class="btn btn-secondary">
                         <span class="material-symbols-outlined text-[15px]">download</span>匯出
                     </a>
                 </div>
             </div>
-            <div class="border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+            <div class="border border-line rounded-lg overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left whitespace-nowrap border-collapse" id="table-personnel">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[13px] font-semibold">
-                                <th class="px-4 py-3 border-r border-slate-200 w-[60px]">ID</th>
-                                <th class="px-4 py-3 border-r border-slate-200">大頭貼</th>
-                                <th class="px-4 py-3 border-r border-slate-200">系統代號</th>
+                            <tr class="bg-surface-muted border-b border-line text-ink-muted text-sm font-semibold">
+                                <th class="px-4 py-3 border-r border-line w-[60px]">ID</th>
+                                <th class="px-4 py-3 border-r border-line">大頭貼</th>
+                                <th class="px-4 py-3 border-r border-line">系統代號</th>
                                 <th class="px-4 py-3">顯示名稱</th>
                                 <th class="px-4 py-3">狀態</th>
                                 <th class="px-4 py-3">離職日期</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm text-slate-700">
+                        <tbody class="divide-y divide-line text-sm text-ink">
                             {% for p in personnel %}
-                            <tr class="hover:bg-slate-50 transition-colors searchable-row">
-                                <td class="px-4 py-3 text-slate-400 font-mono text-xs">{{ p.id }}</td>
+                            <tr class="hover:bg-surface-muted transition-colors searchable-row">
+                                <td class="px-4 py-3 text-ink-muted font-mono text-xs">{{ p.id }}</td>
                                 <td class="px-4 py-3">
                                     <div
-                                        class="size-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
+                                        class="size-8 rounded-full overflow-hidden bg-surface-muted border border-line flex items-center justify-center">
                                         {% if p.avatar_filename %}
                                         <img src="{{ url_for('static', filename='avatars/' + p.avatar_filename) }}"
                                             class="w-full h-full object-cover" alt="avatar">
                                         {% else %}
-                                        <span class="material-symbols-outlined text-slate-400 text-sm">person</span>
+                                        <span class="material-symbols-outlined text-ink-muted text-sm">person</span>
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 font-medium text-slate-900 search-field">{{ p.name }}</td>
-                                <td class="px-4 py-3 text-slate-500 search-field">{{ p.display_name or '-' }}</td>
-                                <td class="px-4 py-3 search-field {{ 'text-rose-600' if p.resigned_date else 'text-emerald-600' }}">{{ '已離職' if p.resigned_date else '在職' }}</td>
+                                <td class="px-4 py-3 font-medium text-ink search-field">{{ p.name }}</td>
+                                <td class="px-4 py-3 text-ink-muted search-field">{{ p.display_name or '-' }}</td>
+                                <td class="px-4 py-3 search-field {{ 'text-rose-600 dark:text-rose-400' if p.resigned_date else 'text-emerald-600 dark:text-emerald-400' }}">{{ '已離職' if p.resigned_date else '在職' }}</td>
                                 <td class="px-4 py-3 search-field">{{ p.resigned_date.strftime('%Y/%m/%d') if p.resigned_date else '-' }}</td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="6" class="px-4 py-8 text-center text-slate-500">目前沒有人員資料。</td>
+                                <td colspan="6" class="px-4 py-8 text-center text-ink-muted">目前沒有人員資料。</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                <div class="pager flex flex-wrap items-center justify-between gap-2 border-t border-line bg-surface px-4 py-3 text-sm text-ink-muted"></div>
             </div>
         </div>
 
@@ -519,47 +499,48 @@
         <div id="db-view-categories" class="hidden">
             <div class="mb-4 flex items-center gap-3">
                 <input type="text" id="search-categories" onkeyup="searchTable('categories')"
-                    class="form-input rounded-lg border-slate-300 bg-white h-9 px-4 text-sm shadow-sm w-[300px]"
+                    class="input w-[300px]"
                     placeholder="搜尋專案種類...">
                 <a href="{{ url_for('manage_categories') }}"
-                    class="px-3 py-1.5 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-colors border border-primary/30">
+                    class="btn btn-ghost text-primary border-primary/30">
                     <span class="material-symbols-outlined text-[14px] align-middle mr-0.5">settings</span>管理專案種類
                 </a>
                 <div class="ml-auto flex items-center gap-2">
                     <button
                         onclick="openImportModal('專案種類', '{{ url_for('import_categories') }}', false, '已存在的種類會自動略過，只新增沒有的。')"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-1.5">
+                        class="btn btn-primary">
                         <span class="material-symbols-outlined text-[15px]">upload</span>匯入
                     </button>
                     <a href="{{ url_for('export_categories') }}" target="_blank"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5 border border-slate-200">
+                        class="btn btn-secondary">
                         <span class="material-symbols-outlined text-[15px]">download</span>匯出
                     </a>
                 </div>
             </div>
-            <div class="border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+            <div class="border border-line rounded-lg overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left whitespace-nowrap border-collapse" id="table-categories">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[13px] font-semibold">
-                                <th class="px-4 py-3 border-r border-slate-200 w-[60px]">ID</th>
+                            <tr class="bg-surface-muted border-b border-line text-ink-muted text-sm font-semibold">
+                                <th class="px-4 py-3 border-r border-line w-[60px]">ID</th>
                                 <th class="px-4 py-3">種類名稱</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm text-slate-700">
+                        <tbody class="divide-y divide-line text-sm text-ink">
                             {% for c in categories %}
-                            <tr class="hover:bg-slate-50 transition-colors searchable-row">
-                                <td class="px-4 py-3 text-slate-400 font-mono text-xs">{{ c.id }}</td>
-                                <td class="px-4 py-3 font-medium text-slate-900 search-field">{{ c.name }}</td>
+                            <tr class="hover:bg-surface-muted transition-colors searchable-row">
+                                <td class="px-4 py-3 text-ink-muted font-mono text-xs">{{ c.id }}</td>
+                                <td class="px-4 py-3 font-medium text-ink search-field">{{ c.name }}</td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="2" class="px-4 py-8 text-center text-slate-500">目前沒有專案種類資料。</td>
+                                <td colspan="2" class="px-4 py-8 text-center text-ink-muted">目前沒有專案種類資料。</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                <div class="pager flex flex-wrap items-center justify-between gap-2 border-t border-line bg-surface px-4 py-3 text-sm text-ink-muted"></div>
             </div>
         </div>
     </div>
@@ -605,7 +586,7 @@
         // Reset file input
         fileInput.value = '';
         document.getElementById('drop-label').textContent = currentDropLabel;
-        document.getElementById('drop-label').className = 'text-sm text-slate-500';
+        document.getElementById('drop-label').className = 'text-sm text-ink-muted';
         document.getElementById('import-submit-btn').disabled = true;
         // Reset radio
         document.querySelector('input[name="import_mode"][value="skip"]').checked = true;
@@ -634,23 +615,38 @@
 
     document.getElementById('import-form').addEventListener('submit', function (e) {
         const wipeCheckbox = document.getElementById('wipe-before-import-checkbox');
+        // one-shot flag: a restored (bfcache) page must ask again
+        if (this.dataset.wipeConfirmed) { delete this.dataset.wipeConfirmed; return; }
         if (wipeCheckbox && wipeCheckbox.checked) {
-            if (!confirm(currentWipeConfirmMsg)) {
-                e.preventDefault();
-            }
+            e.preventDefault();
+            const form = this;
+            confirmDialog(currentWipeConfirmMsg, { confirmText: '清空並匯入' }).then(ok => {
+                if (!ok) return;
+                form.dataset.wipeConfirmed = '1';
+                form.requestSubmit();
+            });
         }
     });
+
+    function restoreFileChosen(input) {
+        if (!input.files.length) return;
+        const msg = '確定要用「' + input.files[0].name + '」還原資料庫嗎？\n\n還原將完全覆蓋目前資料庫；目前的資料會先自動備份(pre_restore)，再被覆蓋。';
+        confirmDialog(msg, { title: '確認還原', confirmText: '確定還原' }).then(ok => {
+            if (ok) document.getElementById('restore-form').submit();
+            else input.value = '';
+        });
+    }
 
     function handleFileSelect(input) {
         const label = document.getElementById('drop-label');
         const btn = document.getElementById('import-submit-btn');
         if (input.files && input.files[0]) {
-            label.textContent = '已選擇：' + input.files[0].name;
+            label.textContent = '已選擇：' + input.files[0].name + '（' + Math.max(1, Math.round(input.files[0].size / 1024)) + ' KB）';
             label.className = 'text-sm font-medium text-primary';
             btn.disabled = false;
         } else {
             label.textContent = currentDropLabel;
-            label.className = 'text-sm text-slate-500';
+            label.className = 'text-sm text-ink-muted';
             btn.disabled = true;
         }
     }
@@ -677,12 +673,14 @@
         const tabs = ['projects', 'tasks', 'reps', 'personnel', 'categories'];
         tabs.forEach(t => {
             document.getElementById('db-view-' + t).classList.add('hidden');
-            document.getElementById('db-btn-' + t).className = "flex items-center gap-2 pb-2 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent -mb-[9px] transition-colors";
+            document.getElementById('db-btn-' + t).setAttribute('aria-selected', 'false');
+            document.getElementById('db-btn-' + t).className = "flex items-center gap-2 pb-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors";
             const badge = document.getElementById('db-btn-' + t).querySelector('span:last-child');
-            if (badge) badge.className = 'bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full';
+            if (badge) badge.className = 'bg-surface-muted text-ink-muted text-xs font-bold px-2 py-0.5 rounded-full';
         });
         document.getElementById('db-view-' + tabId).classList.remove('hidden');
-        document.getElementById('db-btn-' + tabId).className = "flex items-center gap-2 pb-2 text-sm font-bold text-primary border-b-2 border-primary -mb-[9px] transition-colors";
+        document.getElementById('db-btn-' + tabId).setAttribute('aria-selected', 'true');
+        document.getElementById('db-btn-' + tabId).className = "flex items-center gap-2 pb-2 text-sm font-bold text-primary transition-colors";
         const activeBadge = document.getElementById('db-btn-' + tabId).querySelector('span:last-child');
         if (activeBadge) activeBadge.className = 'bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full';
     }
@@ -713,8 +711,9 @@
             fields.forEach(f => { if (f.textContent.toLowerCase().includes(input)) textMatch = true; });
             const rowStatusList = (row.dataset.status || '').split(',').filter(Boolean);
             const statusMatch = selectedStatuses.length === 0 || selectedStatuses.some(s => rowStatusList.includes(s));
-            row.style.display = (textMatch && statusMatch) ? '' : 'none';
+            row.dataset.hide = (textMatch && statusMatch) ? '' : '1';
         });
+        paginate('projects', 1);
     }
 
     // ── Search ──────────────────────────────────────────────────────
@@ -726,8 +725,47 @@
             const fields = row.querySelectorAll('.search-field');
             let match = false;
             fields.forEach(f => { if (f.textContent.toLowerCase().includes(input)) match = true; });
-            row.style.display = match ? '' : 'none';
+            row.dataset.hide = match ? '' : '1';
         });
+        paginate(tabId, 1);
     }
+
+    // ── Client-side paging (works on the filtered rows) ─────────────
+    const PAGE_SIZE = 50;
+    function paginate(tab, page) {
+        const table = document.getElementById('table-' + tab);
+        const pager = table.closest('.border').querySelector('.pager');
+        const all = Array.from(table.querySelectorAll('.searchable-row'));
+        const rows = all.filter(r => !r.dataset.hide);
+        const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+        page = Math.min(Math.max(1, page), pages);
+        all.forEach(r => { r.style.display = 'none'; });
+        rows.forEach((r, i) => { if (i >= (page - 1) * PAGE_SIZE && i < page * PAGE_SIZE) r.style.display = ''; });
+        const from = rows.length ? (page - 1) * PAGE_SIZE + 1 : 0, to = Math.min(page * PAGE_SIZE, rows.length);
+        pager.innerHTML = '';
+        const info = document.createElement('span');
+        info.textContent = '顯示 ' + from + ' - ' + to + ' 項，共 ' + rows.length + ' 筆';
+        pager.appendChild(info);
+        if (pages > 1) {
+            const nav = document.createElement('div');
+            nav.className = 'flex items-center gap-2';
+            const mk = (label, target, disabled) => {
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'btn btn-secondary'; b.textContent = label; b.disabled = disabled;
+                b.onclick = () => paginate(tab, target);
+                return b;
+            };
+            const cur = document.createElement('span');
+            cur.textContent = page + ' / ' + pages;
+            nav.append(mk('上一頁', page - 1, page === 1), cur, mk('下一頁', page + 1, page === pages));
+            pager.appendChild(nav);
+        }
+    }
+    ['projects', 'tasks', 'reps', 'personnel', 'categories'].forEach(t => paginate(t, 1));
+    document.querySelectorAll('[data-status-count]').forEach(el => {
+        const n = Array.from(document.querySelectorAll('#table-projects .searchable-row'))
+            .filter(r => (r.dataset.status || '').split(',').includes(el.dataset.statusCount)).length;
+        el.textContent = '(' + n + ')';
+    });
 </script>
 {% endblock %}

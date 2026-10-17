@@ -3,121 +3,136 @@
 {% block title %}加班統計 - 專案管理系統{% endblock %}
 
 {% block content %}
-<div class="layout-container flex min-h-screen grow flex-col bg-slate-50">
-    <!-- Header -->
-    <div class="flex items-center justify-between px-6 py-3 border-b border-slate-200 bg-white shrink-0">
-        <div class="flex items-center gap-3">
-            <a href="{{ url_for('index') }}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <span class="material-symbols-outlined text-[22px] text-primary">more_time</span>
-                <h2 class="text-slate-900 text-lg font-bold leading-tight">加班統計</h2>
-            </a>
-        </div>
-    </div>
-
+<div class="layout-container flex grow flex-col">
     <div class="flex-1 overflow-auto p-6 w-full max-w-[1100px] mx-auto">
         <!-- Period controls -->
         <form method="GET" action="{{ url_for('overtime_stats') }}" id="ot-form"
-            class="mb-6 flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            <label class="text-sm font-medium text-slate-600">統計區間</label>
-            <select name="granularity" onchange="this.form.submit()"
-                class="form-select rounded-lg border-slate-300 bg-white h-9 pl-3 pr-8 text-sm shadow-sm">
-                <option value="day" {% if granularity=='day' %}selected{% endif %}>依日</option>
-                <option value="month" {% if granularity=='month' %}selected{% endif %}>依月</option>
-                <option value="year" {% if granularity=='year' %}selected{% endif %}>依年</option>
-                <option value="range" {% if granularity=='range' %}selected{% endif %}>自訂區間</option>
-            </select>
+            class="mb-6 flex flex-wrap items-center gap-3 bg-surface border border-line rounded-lg p-4">
+            <label class="text-sm font-medium text-ink">統計區間</label>
+            <input type="hidden" name="granularity" value="{{ granularity }}">
+            <div class="inline-flex rounded-lg border border-line bg-surface-muted p-0.5" role="group" aria-label="統計區間">
+                {% for g, label in [('day', '依日'), ('month', '依月'), ('year', '依年'), ('range', '自訂區間')] %}
+                <a href="{{ url_for('overtime_stats', granularity=g) }}" {% if granularity == g %}aria-current="true"{% endif %}
+                    class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {% if granularity == g %}bg-primary text-white{% else %}text-ink-muted hover:text-ink{% endif %}">{{ label }}</a>
+                {% endfor %}
+            </div>
 
             {% if granularity == 'range' %}
             <div class="flex items-center gap-2">
                 <input type="date" name="start" value="{{ range_start_value }}"
-                    class="form-input rounded-lg border-slate-300 bg-white h-9 px-3 text-sm shadow-sm">
-                <span class="text-slate-400 text-sm">~</span>
+                    class="input w-auto">
+                <span class="text-ink-muted text-sm">~</span>
                 <input type="date" name="end" value="{{ range_end_value }}"
-                    class="form-input rounded-lg border-slate-300 bg-white h-9 px-3 text-sm shadow-sm">
+                    class="input w-auto">
                 <button type="submit"
-                    class="h-9 px-4 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 transition-colors">查詢</button>
+                    class="btn btn-primary">查詢</button>
             </div>
             {% else %}
             <div class="flex items-center gap-1">
                 <a href="{{ url_for('overtime_stats', granularity=granularity, period=prev_value) }}"
-                    class="size-9 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 transition-colors"
+                    class="size-9 flex items-center justify-center rounded-lg border border-line text-ink-muted hover:bg-surface-muted transition-colors"
                     title="上一個區間">
                     <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </a>
                 {% if granularity == 'day' %}
                 <input type="date" name="period" value="{{ period_value }}"
                     onchange="this.form.submit()"
-                    class="form-input rounded-lg border-slate-300 bg-white h-9 px-3 text-sm shadow-sm">
+                    class="input w-auto">
                 {% elif granularity == 'year' %}
                 <input type="number" name="period" value="{{ period_value }}" min="2000" max="2100"
                     onchange="this.form.submit()"
-                    class="form-input rounded-lg border-slate-300 bg-white h-9 px-3 text-sm shadow-sm w-[110px]">
+                    class="input w-[110px]">
                 {% else %}
                 <input type="month" name="period" value="{{ period_value }}"
                     onchange="this.form.submit()"
-                    class="form-input rounded-lg border-slate-300 bg-white h-9 px-3 text-sm shadow-sm">
+                    class="input w-auto">
                 {% endif %}
                 <a href="{{ url_for('overtime_stats', granularity=granularity, period=next_value) }}"
-                    class="size-9 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 transition-colors"
+                    class="size-9 flex items-center justify-center rounded-lg border border-line text-ink-muted hover:bg-surface-muted transition-colors"
                     title="下一個區間">
                     <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </a>
             </div>
             {% endif %}
-            <span class="text-sm text-slate-400 ml-1">目前顯示：<span class="font-semibold text-slate-700">{{ period_label }}</span></span>
+            <span class="ml-1 text-sm text-ink-muted">目前顯示：<span class="rounded-full bg-primary/10 px-2.5 py-0.5 font-semibold text-primary">{{ period_label }}</span></span>
+            <div class="ml-auto flex items-center gap-2">
+                <a href="{{ request.full_path.rstrip('?') }}" class="btn btn-secondary" title="重新整理">
+                    <span class="material-symbols-outlined text-[16px]">refresh</span>重新整理
+                </a>
+                <button type="button" class="btn btn-secondary" onclick="exportOvertimeCsv()" title="將下方兩張表匯出為 CSV">
+                    <span class="material-symbols-outlined text-[16px]">download</span>匯出報表
+                </button>
+            </div>
         </form>
+
+        {% set hours_sum = total_day + total_overtime + total_night %}
 
         <!-- Summary cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
-                <div class="p-3 rounded-full bg-sky-50 text-sky-600">
+            <div class="bg-surface border border-line rounded-lg p-5 flex items-center gap-4">
+                <div class="p-3 rounded-full bg-sky-500/10 text-sky-500">
                     <span class="material-symbols-outlined text-2xl">light_mode</span>
                 </div>
                 <div>
-                    <div class="text-sm font-medium text-slate-500">日班總時數</div>
-                    <div class="text-2xl font-bold text-slate-900">{{ '%g'|format(total_day) }} <span class="text-base font-medium text-slate-400">小時</span></div>
+                    <div class="text-sm font-medium text-ink-muted">日班總時數</div>
+                    <div class="text-2xl font-bold text-ink"><span class="num-pop" style="--i:0">{{ '%g'|format(total_day) }}</span> <span class="text-base font-medium text-ink-muted">小時</span></div>
+                    {% if hours_sum %}<div class="text-sm text-ink-muted">佔 {{ '%.1f'|format(total_day / hours_sum * 100) }}%</div>{% endif %}
                 </div>
             </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
-                <div class="p-3 rounded-full bg-amber-50 text-amber-600">
+            <div class="bg-surface border border-line rounded-lg p-5 flex items-center gap-4">
+                <div class="p-3 rounded-full bg-amber-500/10 text-amber-500">
                     <span class="material-symbols-outlined text-2xl">more_time</span>
                 </div>
                 <div>
-                    <div class="text-sm font-medium text-slate-500">加班總時數</div>
-                    <div class="text-2xl font-bold text-slate-900">{{ '%g'|format(total_overtime) }} <span class="text-base font-medium text-slate-400">小時</span></div>
+                    <div class="text-sm font-medium text-ink-muted">加班總時數</div>
+                    <div class="text-2xl font-bold text-ink"><span class="num-pop" style="--i:1">{{ '%g'|format(total_overtime) }}</span> <span class="text-base font-medium text-ink-muted">小時</span></div>
+                    {% if hours_sum %}<div class="text-sm text-ink-muted">佔 {{ '%.1f'|format(total_overtime / hours_sum * 100) }}%</div>{% endif %}
                 </div>
             </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
-                <div class="p-3 rounded-full bg-indigo-50 text-indigo-600">
+            <div class="bg-surface border border-line rounded-lg p-5 flex items-center gap-4">
+                <div class="p-3 rounded-full bg-indigo-500/10 text-indigo-400">
                     <span class="material-symbols-outlined text-2xl">bedtime</span>
                 </div>
                 <div>
-                    <div class="text-sm font-medium text-slate-500">夜班總時數</div>
-                    <div class="text-2xl font-bold text-slate-900">{{ '%g'|format(total_night) }} <span class="text-base font-medium text-slate-400">小時</span></div>
+                    <div class="text-sm font-medium text-ink-muted">夜班總時數</div>
+                    <div class="text-2xl font-bold text-ink"><span class="num-pop" style="--i:2">{{ '%g'|format(total_night) }}</span> <span class="text-base font-medium text-ink-muted">小時</span></div>
+                    {% if hours_sum %}<div class="text-sm text-ink-muted">佔 {{ '%.1f'|format(total_night / hours_sum * 100) }}%</div>{% endif %}
                 </div>
             </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
-                <div class="p-3 rounded-full bg-slate-100 text-slate-600">
+            <div class="bg-surface border border-line rounded-lg p-5 flex items-center gap-4">
+                <div class="p-3 rounded-full bg-surface-muted text-ink">
                     <span class="material-symbols-outlined text-2xl">receipt_long</span>
                 </div>
                 <div>
-                    <div class="text-sm font-medium text-slate-500">有時數筆數</div>
-                    <div class="text-2xl font-bold text-slate-900">{{ record_count }} <span class="text-base font-medium text-slate-400">筆</span></div>
+                    <div class="text-sm font-medium text-ink-muted">有時數筆數</div>
+                    <div class="text-2xl font-bold text-ink"><span class="num-pop" style="--i:3">{{ record_count }}</span> <span class="text-base font-medium text-ink-muted">筆</span></div>
                 </div>
             </div>
         </div>
 
+        {% if hours_sum %}
+        <div class="mb-6 rounded-lg border border-line bg-surface p-5">
+            <div class="mb-3 text-sm font-semibold text-ink">工時構成（日班 {{ '%g'|format(total_day) }}h / 加班 {{ '%g'|format(total_overtime) }}h / 夜班 {{ '%g'|format(total_night) }}h）</div>
+            <div class="flex h-3 w-full overflow-hidden rounded-full bg-surface-muted">
+                <div class="bg-sky-500" style="width: {{ total_day / hours_sum * 100 }}%"></div>
+                <div class="bg-amber-500" style="width: {{ total_overtime / hours_sum * 100 }}%"></div>
+                <div class="bg-indigo-400" style="width: {{ total_night / hours_sum * 100 }}%"></div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Detail tables -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- By personnel -->
-            <div class="border border-slate-200 rounded-xl shadow-sm overflow-hidden bg-white">
-                <div class="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
+            <div class="border border-line rounded-lg overflow-hidden bg-surface">
+                <div class="px-4 py-3 border-b border-line bg-surface-muted flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px] text-primary">group</span>
-                    <h3 class="text-sm font-bold text-slate-800">依人員統計</h3>
+                    <h3 class="text-sm font-bold text-ink">依人員統計</h3>
+                    <span class="rounded-full bg-primary/10 px-2 py-0.5 text-sm font-medium text-primary">{{ personnel_stats|length }} 位人員</span>
                 </div>
-                <table class="w-full text-left text-sm border-collapse">
+                <table class="w-full text-left text-sm border-collapse" id="ot-table-personnel">
                     <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[13px] font-semibold">
+                        <tr class="bg-surface-muted border-b border-line text-ink-muted text-sm font-semibold">
                             <th class="px-4 py-2.5">人員</th>
                             <th class="px-4 py-2.5 text-right">日班(小時)</th>
                             <th class="px-4 py-2.5 text-right">加班(小時)</th>
@@ -125,31 +140,43 @@
                             <th class="px-4 py-2.5 text-right">筆數</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 text-slate-700">
+                    <tbody class="divide-y divide-line text-ink">
                         {% for r in personnel_stats %}
-                        <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="px-4 py-2.5 font-medium text-slate-900">{{ r.display_name }}</td>
-                            <td class="px-4 py-2.5 text-right text-sky-700">{{ '%g'|format(r.day) }}</td>
-                            <td class="px-4 py-2.5 text-right font-semibold text-amber-700">{{ '%g'|format(r.overtime) }}</td>
-                            <td class="px-4 py-2.5 text-right text-indigo-700">{{ '%g'|format(r.night) }}</td>
-                            <td class="px-4 py-2.5 text-right text-slate-500">{{ r.count }}</td>
+                        <tr class="hover:bg-surface-muted transition-colors">
+                            <td class="px-4 py-2.5 font-medium text-ink">{{ r.display_name }}</td>
+                            <td class="px-4 py-2.5 text-right text-sky-700 dark:text-sky-400">{{ '%g'|format(r.day) }}</td>
+                            <td class="px-4 py-2.5 text-right"><span class="rounded-full bg-amber-500/15 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">{{ '%g'|format(r.overtime) }}</span></td>
+                            <td class="px-4 py-2.5 text-right text-indigo-700 dark:text-indigo-400">{{ '%g'|format(r.night) }}</td>
+                            <td class="px-4 py-2.5 text-right text-ink-muted">{{ r.count }}</td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">此區間沒有時數紀錄。</td></tr>
+                        <tr><td colspan="5" class="px-4 py-8 text-center text-ink-muted">此區間沒有時數紀錄。</td></tr>
                         {% endfor %}
                     </tbody>
+                    {% if personnel_stats %}
+                    <tfoot>
+                        <tr class="border-t border-line bg-surface-muted font-semibold text-ink">
+                            <td class="px-4 py-2.5">人員總計</td>
+                            <td class="px-4 py-2.5 text-right">{{ '%g'|format(personnel_stats|sum(attribute='day')) }}</td>
+                            <td class="px-4 py-2.5 text-right">{{ '%g'|format(personnel_stats|sum(attribute='overtime')) }}</td>
+                            <td class="px-4 py-2.5 text-right">{{ '%g'|format(personnel_stats|sum(attribute='night')) }}</td>
+                            <td class="px-4 py-2.5 text-right">{{ personnel_stats|sum(attribute='count') }}</td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
                 </table>
             </div>
 
             <!-- By project -->
-            <div class="border border-slate-200 rounded-xl shadow-sm overflow-hidden bg-white">
-                <div class="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
+            <div class="border border-line rounded-lg overflow-hidden bg-surface">
+                <div class="px-4 py-3 border-b border-line bg-surface-muted flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px] text-primary">folder</span>
-                    <h3 class="text-sm font-bold text-slate-800">依專案統計</h3>
+                    <h3 class="text-sm font-bold text-ink">依專案統計</h3>
+                    <span class="rounded-full bg-primary/10 px-2 py-0.5 text-sm font-medium text-primary">{{ project_stats|length }} 個專案</span>
                 </div>
-                <table class="w-full text-left text-sm border-collapse">
+                <table class="w-full text-left text-sm border-collapse" id="ot-table-projects">
                     <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[13px] font-semibold">
+                        <tr class="bg-surface-muted border-b border-line text-ink-muted text-sm font-semibold">
                             <th class="px-4 py-2.5">專案</th>
                             <th class="px-4 py-2.5 text-right">日班(小時)</th>
                             <th class="px-4 py-2.5 text-right">加班(小時)</th>
@@ -157,22 +184,47 @@
                             <th class="px-4 py-2.5 text-right">筆數</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 text-slate-700">
+                    <tbody class="divide-y divide-line text-ink">
                         {% for r in project_stats %}
-                        <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="px-4 py-2.5 font-medium text-slate-900">{{ r.name }}</td>
-                            <td class="px-4 py-2.5 text-right text-sky-700">{{ '%g'|format(r.day) }}</td>
-                            <td class="px-4 py-2.5 text-right font-semibold text-amber-700">{{ '%g'|format(r.overtime) }}</td>
-                            <td class="px-4 py-2.5 text-right text-indigo-700">{{ '%g'|format(r.night) }}</td>
-                            <td class="px-4 py-2.5 text-right text-slate-500">{{ r.count }}</td>
+                        <tr class="hover:bg-surface-muted transition-colors">
+                            <td class="px-4 py-2.5 font-medium text-ink">{{ r.name }}</td>
+                            <td class="px-4 py-2.5 text-right text-sky-700 dark:text-sky-400">{{ '%g'|format(r.day) }}</td>
+                            <td class="px-4 py-2.5 text-right"><span class="rounded-full bg-amber-500/15 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">{{ '%g'|format(r.overtime) }}</span></td>
+                            <td class="px-4 py-2.5 text-right text-indigo-700 dark:text-indigo-400">{{ '%g'|format(r.night) }}</td>
+                            <td class="px-4 py-2.5 text-right text-ink-muted">{{ r.count }}</td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">此區間沒有時數紀錄。</td></tr>
+                        <tr><td colspan="5" class="px-4 py-8 text-center text-ink-muted">此區間沒有時數紀錄。</td></tr>
                         {% endfor %}
                     </tbody>
+                    {% if project_stats %}
+                    <tfoot>
+                        <tr class="border-t border-line bg-surface-muted font-semibold text-ink">
+                            <td class="px-4 py-2.5">專案總計</td>
+                            <td class="px-4 py-2.5 text-right">{{ '%g'|format(project_stats|sum(attribute='day')) }}</td>
+                            <td class="px-4 py-2.5 text-right">{{ '%g'|format(project_stats|sum(attribute='overtime')) }}</td>
+                            <td class="px-4 py-2.5 text-right">{{ '%g'|format(project_stats|sum(attribute='night')) }}</td>
+                            <td class="px-4 py-2.5 text-right">{{ project_stats|sum(attribute='count') }}</td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
                 </table>
             </div>
         </div>
     </div>
 </div>
+<script>
+    function exportOvertimeCsv() {
+        const rows = [['統計區間', document.querySelector('#ot-form .text-primary').textContent.trim()]];
+        [['ot-table-personnel', '依人員統計'], ['ot-table-projects', '依專案統計']].forEach(([id, title]) => {
+            rows.push([], [title]);
+            document.querySelectorAll('#' + id + ' tr').forEach(tr => {
+                const cells = Array.from(tr.children);
+                if (cells.length < 5) return;
+                rows.push(cells.map(c => c.textContent.trim()));
+            });
+        });
+        downloadCsv('加班統計.csv', rows);
+    }
+</script>
 {% endblock %}

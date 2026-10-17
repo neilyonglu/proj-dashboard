@@ -1,0 +1,12 @@
+{# Shared confirm dialog. Use data-confirm="..." on a <form> or <a>, or call confirmDialog(msg, {title, confirmText}) -> Promise<boolean> (static/js/main.js). #}
+<dialog id="confirm-dialog" aria-labelledby="confirm-title"
+    class="m-auto w-[calc(100%-2rem)] max-w-sm rounded-xl border border-line bg-surface p-0 text-ink shadow-lg backdrop:bg-slate-900/50">
+    <form method="dialog" class="p-6">
+        <h3 id="confirm-title" class="mb-2 text-lg font-bold">確認刪除</h3>
+        <p id="confirm-message" class="mb-6 whitespace-pre-line text-sm text-ink-muted"></p>
+        <div class="flex justify-end gap-3">
+            <button type="submit" value="cancel" id="confirm-cancel" autofocus class="btn btn-secondary">取消</button>
+            <button type="submit" value="ok" id="confirm-ok" class="btn btn-danger">確定刪除</button>
+        </div>
+    </form>
+</dialog>

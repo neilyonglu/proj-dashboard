@@ -1,0 +1,36 @@
+{# Shared site header. Active item comes from request.endpoint. Fixed h-14. #}
+{% set ep = request.endpoint or '' %}
+{% set nav_items = [
+    ('index', '首頁', ['index']),
+    ('add_task', '填寫工時', ['add_task', 'edit_task']),
+    ('employee_case', '員工進度表', ['employee_case']),
+    ('proj_timeline', '專案進度表', ['proj_timeline', 'project_detail', 'add_proj', 'edit_project']),
+    ('overtime_stats', '加班統計', ['overtime_stats']),
+] %}
+<header id="site-header"
+    class="z-30 flex h-14 w-full shrink-0 items-center justify-between gap-4 border-b border-line bg-surface px-4 text-ink sm:px-6">
+    <a href="{{ url_for('index') }}" class="flex shrink-0 items-center gap-2.5 transition-opacity hover:opacity-80">
+        <span class="material-symbols-outlined flex h-7 w-7 items-center justify-center rounded-md bg-primary text-[18px] text-white" aria-hidden="true">view_kanban</span>
+        <span class="hidden text-[15px] font-semibold leading-tight tracking-tight sm:inline">專案派工進度</span>
+    </a>
+    <nav aria-label="主選單" class="hide-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sm:px-4">
+        {% for endpoint, label, group in nav_items %}
+        {% set active = ep in group %}
+        <a href="{{ url_for(endpoint) }}" {% if active %}aria-current="page"{% endif %}
+            class="whitespace-nowrap rounded-md border px-3 py-1.5 text-sm font-medium transition-colors {% if active %}border-line bg-surface-muted text-ink{% else %}border-transparent text-ink-muted hover:bg-surface-muted hover:text-ink{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </nav>
+    <div class="flex shrink-0 items-center gap-2">
+        <button type="button" id="theme-toggle" data-theme-toggle class="btn btn-secondary !w-8 !px-0"
+            aria-label="切換外觀" title="外觀：深色">
+            <span class="material-symbols-outlined text-[18px]" id="theme-toggle-icon" aria-hidden="true">dark_mode</span>
+        </button>
+        {% if session.get('db_admin_auth') %}
+        <a href="{{ url_for('manage_db') }}"
+            class="btn btn-secondary {% if ep == 'manage_db' %}!border-slate-600{% endif %}" title="資料庫管理"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">database</span><span class="hidden sm:inline">資料庫管理</span></a>
+        {% else %}
+        <a href="{{ url_for('manage_db_login') }}" class="btn btn-ghost">管理者登入</a>
+        {% endif %}
+        <span class="hidden select-none rounded-md border border-line px-2 py-0.5 font-mono text-xs text-ink-muted sm:inline">v{{ app_version }}</span>
+    </div>
+</header>

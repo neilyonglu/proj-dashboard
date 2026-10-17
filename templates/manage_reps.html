@@ -3,70 +3,69 @@
 {% block title %}管理業務代表 - 專案管理系統{% endblock %}
 
 {% block content %}
-<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="relative flex h-auto flex-1 w-full flex-col group/design-root overflow-x-hidden">
     <div class="layout-container flex h-full grow flex-col">
         <main class="flex-1 flex justify-center py-8 sm:py-12 px-4 sm:px-6">
             <div
-                class="w-full max-w-[600px] bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 sm:p-10">
+                class="w-full max-w-[600px] bg-surface rounded-lg border border-line p-6 sm:p-10">
                 <div class="mb-8">
                     <div class="flex items-center gap-2 mb-2">
                         <span
-                            class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-sm">arrow_back</span>
-                        <a class="text-sm text-slate-500 dark:text-slate-400 hover:text-primary transition-colors font-medium"
+                            class="material-symbols-outlined text-ink-muted text-sm">arrow_back</span>
+                        <a class="text-sm text-ink-muted hover:text-primary transition-colors font-medium"
                             href="{{ back_url }}">返回</a>
                     </div>
-                    <h1 class="text-3xl font-bold leading-tight tracking-tight mt-4">管理業務代表</h1>
-                    <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">新增、編輯或移除業務代表，可設定離職日期（在職請留空）。</p>
+                    <div class="mt-4 flex flex-wrap items-center gap-3">
+                        <h1 class="text-3xl font-bold leading-tight tracking-tight">管理業務代表</h1>
+                        <span class="rounded-full bg-surface-muted px-2.5 py-0.5 text-sm font-medium text-ink-muted">共 {{ reps|length }} 位</span>
+                    </div>
+                    <p class="text-ink-muted mt-2 text-sm">新增、編輯或移除業務代表，可設定離職日期（在職請留空）。</p>
                 </div>
 
-                <!-- 顯示提示訊息 -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                {% for category, message in messages %}
-                <div
-                    class="mb-6 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-700 border border-green-200{% else %}bg-red-100 text-red-700 border border-red-200{% endif %}">
-                    {{ message }}
-                </div>
-                {% endfor %}
-                {% endif %}
-                {% endwith %}
 
                 <form class="flex flex-col gap-4 mb-8" method="POST" action="{{ url_for('manage_reps') }}">
                     <input type="hidden" name="action" value="add" />
-                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">新增業務代表</label>
-                    <div class="flex gap-2">
+                    <label class="text-sm font-semibold text-ink">新增業務代表</label>
+                    <div class="flex flex-wrap gap-2">
                         <input name="rep_name" type="text"
-                            class="form-input flex-1 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 h-10 px-4 shadow-sm"
+                            class="input flex-1"
                             placeholder="輸入名稱 (如: Leo/許仁豪)" required />
+                        <label class="flex items-center gap-2 text-sm text-ink-muted">離職日期（選填）
+                            <input name="resigned_date" type="date" class="input w-auto" />
+                        </label>
                         <button type="submit"
-                            class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 flex items-center justify-center shadow-sm whitespace-nowrap">
+                            class="btn btn-primary">
                             <span class="material-symbols-outlined text-sm mr-1">add</span>新增
                         </button>
                     </div>
                 </form>
 
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">現有業務代表名單</label>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <label class="text-sm font-semibold text-ink">現有業務代表名單</label>
+                        <input type="text" id="rep-search" class="input ml-auto w-[220px]" placeholder="搜尋業務代表..." oninput="filterReps()">
+                    </div>
                     <ul
-                        class="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                        class="divide-y divide-line border border-line rounded-lg overflow-hidden">
                         {% for r in reps %}
-                        <li class="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        <li class="bg-surface hover:bg-surface-muted transition-colors rep-row" data-search="{{ r.name|lower }}">
                             <!-- View mode -->
                             <div class="flex items-center justify-between p-4" id="rep-view-{{ r.id }}">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ r.name }}</span>
-                                    <span class="text-xs {{ 'text-rose-600' if r.resigned_date else 'text-emerald-600' }}">{{ '已離職 ' + r.resigned_date.strftime('%Y/%m/%d') if r.resigned_date else '在職' }}</span>
+                                    <span class="text-sm font-medium text-ink{% if r.resigned_date %} line-through opacity-60{% endif %}">{{ r.name }}</span>
+                                    <span class="text-xs {{ 'text-rose-600 dark:text-rose-400' if r.resigned_date else 'text-emerald-600 dark:text-emerald-400' }}">{{ '已離職 ' + r.resigned_date.strftime('%Y/%m/%d') if r.resigned_date else '在職' }}</span>
+                                    <span class="text-sm text-ink-muted">關聯專案 {{ counts.get(r.name, 0) }} 個</span>
                                 </div>
                                 <div class="flex items-center gap-1">
                                     <button type="button" onclick="toggleRepEdit({{ r.id }}, true)"
-                                        class="text-blue-500 hover:bg-blue-50 p-2 rounded transition-colors" title="修改">
+                                        class="text-primary hover:bg-surface-muted p-2 rounded transition-colors" title="修改">
                                         <span class="material-symbols-outlined text-[18px]">edit</span>
                                     </button>
                                     <form action="{{ url_for('manage_reps') }}" method="POST"
-                                        onsubmit="return confirm('確定要移除「{{ r.name }}」嗎？(已使用的專案不會受影響，但日後將無法從選單中選擇)');">
+                                        data-confirm="確定要移除「{{ r.name }}」嗎？(目前有 {{ counts.get(r.name, 0) }} 個專案使用，這些專案不會受影響，但日後將無法從選單中選擇)">
                                         <input type="hidden" name="action" value="delete" />
                                         <input type="hidden" name="rep_id" value="{{ r.id }}" />
-                                        <button type="submit" class="text-red-500 hover:bg-red-50 p-2 rounded transition-colors"
+                                        <button type="submit" class="text-red-500 hover:bg-red-500/10 p-2 rounded transition-colors"
                                             title="移除">
                                             <span class="material-symbols-outlined text-[18px]">delete</span>
                                         </button>
@@ -75,26 +74,28 @@
                             </div>
                             <!-- Edit mode -->
                             <form action="{{ url_for('manage_reps') }}" method="POST"
-                                class="hidden flex-wrap items-center gap-2 p-4 bg-blue-50/50 dark:bg-blue-900/10" id="rep-edit-{{ r.id }}">
+                                class="hidden flex-wrap items-center gap-2 p-4 bg-primary/5" id="rep-edit-{{ r.id }}">
                                 <input type="hidden" name="action" value="edit" />
                                 <input type="hidden" name="rep_id" value="{{ r.id }}" />
                                 <input name="rep_name" type="text" value="{{ r.name }}" required
-                                    class="form-input flex-1 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 h-9 px-3 text-sm shadow-sm" />
-                                <label class="text-xs text-slate-500">離職日期（在職請留空）
+                                    class="input flex-1" />
+                                <label class="text-xs text-ink-muted">離職日期（在職請留空）
                                     <input name="resigned_date" type="date"
                                         value="{{ r.resigned_date.isoformat() if r.resigned_date else '' }}"
-                                        class="form-input rounded-lg border-slate-300 dark:border-slate-700 h-9 px-3 text-sm" />
+                                        class="input w-auto" />
                                 </label>
                                 <button type="submit"
-                                    class="px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-sm">儲存</button>
+                                    class="btn btn-primary">儲存</button>
                                 <button type="button" onclick="toggleRepEdit({{ r.id }}, false)"
-                                    class="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 bg-slate-200 hover:bg-slate-300">取消</button>
+                                    class="btn btn-secondary">取消</button>
                             </form>
                         </li>
                         {% else %}
-                        <li class="p-4 text-center text-slate-500 text-sm">目前沒有業務代表</li>
+                        <li class="p-4 text-center text-ink-muted text-sm">目前沒有業務代表</li>
                         {% endfor %}
                     </ul>
+                    <p id="rep-no-match" class="hidden p-4 text-center text-sm text-ink-muted">沒有符合的業務代表</p>
+                    <p class="text-sm text-ink-muted">在職 {{ reps|rejectattr('resigned_date')|list|length }} 位 · 已離職 {{ reps|selectattr('resigned_date')|list|length }} 位</p>
                 </div>
             </div>
         </main>
@@ -102,6 +103,7 @@
 </div>
 
 <script>
+    function filterReps() { filterRows(document.getElementById('rep-search'), '.rep-row', 'rep-no-match'); }
     function toggleRepEdit(id, editing) {
         const view = document.getElementById('rep-view-' + id);
         const edit = document.getElementById('rep-edit-' + id);

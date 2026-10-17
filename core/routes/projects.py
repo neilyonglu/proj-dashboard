@@ -89,7 +89,7 @@ def register(app):
                 db.session.rollback()
                 flash(f'發生錯誤：{str(e)}', 'error')
 
-        reps = Representative.query.order_by(Representative.name).all()
+        reps = Representative.query.filter(Representative.resigned_date.is_(None)).order_by(Representative.name).all()
         categories = Category.query.order_by(Category.name).all()
         return render_template('add_proj.html', reps=reps, categories=categories)
 

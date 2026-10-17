@@ -6,25 +6,143 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>{% block title %}專案管理系統{% endblock %}</title>
 
+    <!-- Apply saved theme before first paint (no flash). Mode: light | dark | system; default dark -->
+    <script>
+        (function () {
+            var mode = 'dark';
+            try { mode = localStorage.getItem('theme') || 'dark'; } catch (e) { }
+            var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('dark', dark);
+            document.documentElement.setAttribute('data-theme-mode', mode);
+        })();
+    </script>
+
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
     <script src="{{ url_for('static', filename='js/tailwind-config.js') }}"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700&display=swap"
         rel="stylesheet" />
 
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+
+    <!-- Theme tokens (RGB channels, consumed by tailwind-config.js) -->
+    <style>
+        :root {
+            --surface: 255 255 255;
+            --surface-muted: 244 244 246;
+            --line: 227 227 230;
+            --ink: 22 23 26;
+            --ink-muted: 93 97 107;
+            --st-active-bg: 254 243 199;  --st-active-fg: 146 64 14;
+            --st-paused-bg: 224 242 254;  --st-paused-fg: 3 105 161;
+            --st-waiting-bg: 255 228 230; --st-waiting-fg: 190 18 60;
+            --st-closed-bg: 209 250 229;  --st-closed-fg: 4 120 87;
+        }
+        /* Obsidian Precision: canvas #0e0f11 → L1 #16171a → L2 #1c1d21, border #2a2b30; status = 12% tints */
+        .dark {
+            color-scheme: dark;
+            --surface: 22 23 26;
+            --surface-muted: 28 29 33;
+            --line: 42 43 48;
+            --ink: 241 242 244;
+            --ink-muted: 156 160 170;
+            --st-active-bg: 49 39 24;     --st-active-fg: 251 191 36;
+            --st-paused-bg: 21 40 51;     --st-paused-fg: 56 189 248;
+            --st-waiting-bg: 49 28 34;    --st-waiting-fg: 251 113 133;
+            --st-closed-bg: 21 42 38;     --st-closed-fg: 52 211 153;
+        }
+        /* brand indigo is too dark for text on dark surfaces */
+        .dark .text-primary { color: #bdc2ff; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+
+    <!-- Shared component classes. Must be type="text/tailwindcss" for @apply to work with the Play CDN. -->
+    <style type="text/tailwindcss">
+        @layer base {
+            :focus-visible { outline: 2px solid #5e6ad2; outline-offset: 2px; }
+            .dark :focus-visible { outline-color: #bdc2ff; }
+            table { font-variant-numeric: tabular-nums; }
+            h1, h2, h3 { letter-spacing: -0.015em; }
+        }
+        @layer components {
+            .btn { @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md border border-transparent text-sm font-medium whitespace-nowrap select-none cursor-pointer transition duration-150 ease-out active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100; }
+            .btn-primary { @apply bg-primary text-white hover:bg-blue-500 active:bg-primary-700; }
+            .btn-secondary { @apply bg-surface-muted text-ink border-line hover:bg-slate-200 dark:hover:bg-[#25262c] dark:hover:border-slate-600; }
+            .btn-ghost { @apply bg-transparent text-ink-muted hover:bg-surface-muted hover:text-ink; }
+            .btn-danger { @apply bg-danger text-white hover:bg-danger-700; }
+            .input { @apply block w-full h-9 px-3 rounded-md border border-line bg-surface text-ink text-sm placeholder:text-slate-500 focus:border-primary focus:ring-1 focus:ring-primary dark:focus:bg-slate-800 disabled:opacity-60; }
+            .panel { @apply bg-surface text-ink border border-line rounded-lg; }
+            .num { font-variant-numeric: tabular-nums; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+            .btn:active { transform: none !important; }
+        }
+    </style>
+
+    <!-- Motion (after transitions.dev): quick ease-out in, instant out. Entry animations replay
+         whenever an element goes from display:none to visible, so hidden-toggled menus/modals need no JS. -->
+    <style>
+        :root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --dur-quick: 160ms; --dur-base: 220ms; }
+        @keyframes pop-in { from { opacity: 0; transform: scale(0.96); } }
+        @keyframes drop-in { from { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+        @keyframes rise-in { from { opacity: 0; transform: translateY(8px) scale(0.98); filter: blur(2px); } }
+        @keyframes num-in { from { opacity: 0; transform: translateY(6px); filter: blur(4px); } }
+        @keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }
+        dialog[open], .anim-pop { animation: pop-in var(--dur-quick) var(--ease-out); }
+        dialog[open]::backdrop { animation: fade-in var(--dur-quick) var(--ease-out); }
+        @keyframes fade-in { from { opacity: 0; } }
+        .anim-dropdown { transform-origin: top; animation: drop-in var(--dur-quick) var(--ease-out); }
+        .anim-rise { animation: rise-in var(--dur-base) var(--ease-out); }
+        .num-pop { display: inline-block; animation: num-in 420ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 60ms); }
+        .shake { animation: shake 360ms cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+        /* fields the user touched and left invalid */
+        :is(input, select, textarea):user-invalid { border-color: #f43f5e !important; box-shadow: 0 0 0 1px #f43f5e; }
+        /* sliding tab indicator, positioned by main.js for [data-tabs] */
+        [data-tabs] { position: relative; }
+        .tab-indicator { position: absolute; bottom: 0; height: 2px; border-radius: 2px; background: #5e6ad2; pointer-events: none;
+            transition: transform var(--dur-base) var(--ease-out), width var(--dur-base) var(--ease-out); }
+        .dark .tab-indicator { background: #bdc2ff; }
+        /* Page entry: cards rise in, staggered by position within their parent */
+        /* fill "backwards" (not "both") so the finished animation doesn't pin transform and block :hover lift */
+        .panel { animation: rise-in 360ms var(--ease-out) backwards; }
+        .panel:nth-child(2) { animation-delay: 50ms; }
+        .panel:nth-child(3) { animation-delay: 100ms; }
+        .panel:nth-child(4) { animation-delay: 150ms; }
+        .panel:nth-child(n+5) { animation-delay: 200ms; }
+        /* hover/press feedback for clickable surfaces */
+        .interactive { transition: background-color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out); }
+        .interactive:hover { transform: translateY(-2px); border-color: #5e6ad2; box-shadow: 0 8px 24px rgba(0, 0, 0, .18); }
+        .interactive:active { transform: translateY(0) scale(0.98); }
+        .btn:active { transform: scale(0.96); }
+        tbody tr { transition: background-color var(--dur-quick) var(--ease-out); }
+        .input { transition: border-color var(--dur-quick) var(--ease-out), box-shadow var(--dur-quick) var(--ease-out), background-color var(--dur-quick) var(--ease-out); }
+        /* icon swap on the theme toggle (re-added by main.js on click) */
+        @keyframes icon-swap { from { opacity: 0; transform: rotate(-90deg) scale(0.6); filter: blur(2px); } }
+        .icon-swap { animation: icon-swap 280ms var(--ease-out); }
+        /* selects that draw their own chevron icon: drop the forms-plugin arrow */
+        select.appearance-none { background-image: none; }
+        a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
+    </style>
 
     {% block extra_head %}{% endblock %}
 </head>
 
 <body
-    class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col selection:bg-primary/20 selection:text-primary overflow-x-hidden">
+    class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display {% block body_class %}min-h-screen{% endblock %} flex flex-col selection:bg-primary/20 selection:text-primary overflow-x-hidden">
+
+    {% block site_header %}{% include '_header.html' %}{% endblock %}
+
+    {% block flash %}{% include '_flash.html' %}{% endblock %}
 
     {% block content %}
     {% endblock %}
+
+    {% include '_confirm.html' %}
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 

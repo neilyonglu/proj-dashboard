@@ -1,0 +1,18 @@
+{# Shared flash messages. Success auto-dismisses (see main.js); errors persist until closed. #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div id="flash-container" class="mx-auto flex w-full max-w-[1600px] shrink-0 flex-col gap-2 px-4 pt-4 sm:px-6">
+    {% for category, message in messages %}
+    {% set ok = (category == 'success') %}
+    <div role="{{ 'status' if ok else 'alert' }}" {% if ok %}data-autodismiss{% endif %}
+        class="flash-msg anim-rise flex items-start gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all duration-500 {% if ok %}border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200{% else %}border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200{% endif %}">
+        <span class="material-symbols-outlined mt-0.5 text-[18px]" aria-hidden="true">{{ 'check_circle' if ok else 'error' }}</span>
+        <span class="flex-1">{{ message }}</span>
+        <button type="button" data-flash-close aria-label="關閉訊息" class="-mr-1 rounded p-0.5 opacity-70 hover:opacity-100">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
+        </button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}

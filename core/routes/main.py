@@ -1,6 +1,8 @@
 from datetime import date, timedelta
 
 from flask import render_template, request, session
+from sqlalchemy import func
+from ..extensions import db
 from ..models import Project, Task, Personnel
 
 
@@ -15,11 +17,19 @@ def register(app):
         end_of_month = date(today.year + 1, 1, 1) if today.month == 12 else date(today.year, today.month + 1, 1)
         tasks_this_month = Task.query.filter(Task.date >= start_of_month, Task.date < end_of_month).all()
         monthly_work_days = sum(t.work_days for t in tasks_this_month)
+        start_of_prev = date(today.year - 1, 12, 1) if today.month == 1 else date(today.year, today.month - 1, 1)
+        prev_work_days = (db.session.query(func.coalesce(func.sum(Task.work_days), 0))
+                          .filter(Task.date >= start_of_prev, Task.date < start_of_month).scalar())
+        # overdue = project not closed (已結案) whose end_date is set and already past
+        overdue_projects = Project.query.filter(Project.status != '已結案', Project.end_date < today).count()
+        reported_count = len({t.personnel for t in tasks_this_month})
         return render_template('index.html',
+                               work_days_diff=monthly_work_days - prev_work_days,
+                               overdue_projects=overdue_projects,
+                               reported_count=reported_count,
                                active_projects=active_projects_count,
                                total_personnel=total_personnel,
-                               monthly_work_days=monthly_work_days,
-                               is_admin=bool(session.get('db_admin_auth')))
+                               monthly_work_days=monthly_work_days)
 
     @app.route('/employee-case')
     def employee_case():

@@ -3,49 +3,36 @@
 {% block title %}工作內容填表{% endblock %}
 
 {% block content %}
-<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<div class="relative flex flex-1 w-full flex-col overflow-x-hidden">
     <div class="layout-container flex h-full grow flex-col">
         <div class="px-4 sm:px-10 md:px-20 lg:px-40 flex flex-1 justify-center py-10">
             <div
-                class="layout-content-container flex flex-col w-full max-w-[800px] flex-1 bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-10">
+                class="layout-content-container panel flex flex-col w-full max-w-[800px] flex-1 p-6 sm:p-10">
 
                 <div class="flex items-center gap-2 mb-6">
-                    <a class="text-sm text-slate-500 dark:text-slate-400 hover:text-primary transition-colors font-medium"
+                    <a class="text-sm text-ink-muted hover:text-primary transition-colors font-medium"
                         href="{{ url_for('index') }}"><span
-                            class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-sm">arrow_back</span>
+                            class="material-symbols-outlined text-ink-muted text-sm">arrow_back</span>
                         返回首頁</a>
                 </div>
 
                 <div class="flex flex-wrap justify-between gap-3 mb-8">
-                    <h1 class="text-slate-900 dark:text-white text-3xl font-bold leading-tight tracking-tight">工作內容表單
+                    <h1 class="text-ink text-2xl font-semibold leading-tight tracking-tight">工作內容表單
                     </h1>
                 </div>
 
-                <!-- 顯示提示訊息 -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                <div class="mb-6">
-                    {% for category, message in messages %}
-                    <div
-                        class="p-4 rounded-lg text-sm font-medium {% if category == 'success' %}bg-green-100 text-green-700 border border-green-200{% else %}bg-red-100 text-red-700 border border-red-200{% endif %}">
-                        {{ message }}
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                {% endwith %}
 
                 <form class="flex flex-col gap-6" method="POST" action="{{ url_for('add_task') }}">
 
                     <div class="w-full">
                         <label class="flex flex-col">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">參與人員 <span
+                                <span class="text-ink text-sm font-semibold">參與人員 <span
                                         class="text-red-500">*</span></span>
                             </div>
                             <div class="relative" data-combobox data-required>
                                 <input type="hidden" name="personnel" value="{{ prefill_person }}">
-                                <input type="text" class="combo-input form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 h-12 px-4 text-sm font-normal transition-colors"
+                                <input type="text" class="combo-input input"
                                     placeholder="輸入關鍵字篩選或點選參與人員" autocomplete="off">
                                 <ul class="combo-list hidden">
                                     {% for p in personnel_list %}
@@ -58,11 +45,11 @@
 
                     <div class="w-full">
                         <label class="flex flex-col">
-                            <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold mb-1">專案列表
+                            <span class="text-ink text-sm font-semibold mb-1">專案列表
                                 <span class="text-red-500">*</span></span>
                             <div class="relative" data-combobox data-required>
                                 <input type="hidden" name="project_id" value="">
-                                <input type="text" class="combo-input form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 h-12 px-4 text-sm font-normal transition-colors"
+                                <input type="text" class="combo-input input"
                                     placeholder="輸入關鍵字篩選或點選專案" autocomplete="off">
                                 <ul class="combo-list hidden">
                                     {% for proj in projects %}
@@ -76,25 +63,25 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div class="w-full">
                             <label class="flex flex-col">
-                                <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">工作日期 <span
+                                <span class="text-ink text-sm font-semibold mb-2">工作日期 <span
                                         class="text-red-500">*</span></span>
                                 <div class="relative flex w-full items-stretch">
                                     <input type="date" name="date" required
-                                        class="form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 h-12 px-4 text-sm font-normal transition-colors" />
+                                        class="input" />
                                 </div>
                             </label>
                         </div>
 
                         <div class="w-full">
                             <label class="flex flex-col">
-                                <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">工作天數 <span
+                                <span class="text-ink text-sm font-semibold mb-2">工作天數 <span
                                         class="text-red-500">*</span></span>
                                 <div class="relative flex w-full items-stretch">
-                                    <input type="number" name="work_days" step="0.5" min="0.5" max="30" required
+                                    <div class="relative w-full"><input type="number" name="work_days" step="0.5" min="0.5" max="30" required
                                         placeholder="例如：1 或 0.5"
-                                        class="form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 h-12 px-4 text-sm font-normal transition-colors" />
+                                        class="input" /><span class="absolute right-9 top-1/2 -translate-y-1/2 text-sm text-ink-muted pointer-events-none">天</span></div>
                                 </div>
-                                <span class="text-xs text-slate-400 mt-1">支援 0.5 天為單位</span>
+                                <span class="text-xs text-ink-muted mt-1">支援 0.5 天為單位</span>
                             </label>
                         </div>
                     </div>
@@ -102,53 +89,55 @@
                     <!-- Shift hours (optional) -->
                     <div class="w-full">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold">時數明細</span>
-                            <span class="text-slate-400 font-normal text-xs">(選填，可與工作天數並存)</span>
+                            <span class="text-ink text-sm font-semibold">時數明細</span>
+                            <span class="text-ink-muted font-normal text-xs">(選填，可與工作天數並存)</span>
+                            <span class="ml-auto text-sm text-ink-muted">合計 <span data-hours-total class="num font-semibold text-ink">0</span> hr</span>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <label class="flex flex-col">
-                                <span class="text-slate-500 dark:text-slate-400 text-xs font-medium mb-1">日班時數</span>
-                                <input type="number" name="day_hours" step="0.5" min="0" placeholder="例如：8"
-                                    class="form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 h-11 px-4 text-sm font-normal transition-colors" />
+                                <span class="text-ink-muted text-xs font-medium mb-1">日班時數</span>
+                                <div class="relative w-full"><input type="number" name="day_hours" data-hours step="0.5" min="0" placeholder="例如：8"
+                                    class="input" /><span class="absolute right-9 top-1/2 -translate-y-1/2 text-sm text-ink-muted pointer-events-none">hr</span></div>
                             </label>
                             <label class="flex flex-col">
-                                <span class="text-slate-500 dark:text-slate-400 text-xs font-medium mb-1">加班時數</span>
-                                <input type="number" name="overtime_hours" step="0.5" min="0" placeholder="例如：2"
-                                    class="form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 h-11 px-4 text-sm font-normal transition-colors" />
+                                <span class="text-ink-muted text-xs font-medium mb-1">加班時數</span>
+                                <div class="relative w-full"><input type="number" name="overtime_hours" data-hours step="0.5" min="0" placeholder="例如：2"
+                                    class="input" /><span class="absolute right-9 top-1/2 -translate-y-1/2 text-sm text-ink-muted pointer-events-none">hr</span></div>
                             </label>
                             <label class="flex flex-col">
-                                <span class="text-slate-500 dark:text-slate-400 text-xs font-medium mb-1">夜班時數</span>
-                                <input type="number" name="night_hours" step="0.5" min="0" placeholder="例如：0"
-                                    class="form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 h-11 px-4 text-sm font-normal transition-colors" />
+                                <span class="text-ink-muted text-xs font-medium mb-1">夜班時數</span>
+                                <div class="relative w-full"><input type="number" name="night_hours" data-hours step="0.5" min="0" placeholder="例如：0"
+                                    class="input" /><span class="absolute right-9 top-1/2 -translate-y-1/2 text-sm text-ink-muted pointer-events-none">hr</span></div>
                             </label>
                         </div>
                     </div>
 
                     <div class="w-full">
                         <label class="flex flex-col">
-                            <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">工作內容 <span
-                                    class="text-red-500">*</span></span>
-                            <textarea name="description" required
-                                class="form-input flex w-full resize-y rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 min-h-[160px] p-4 text-sm font-normal transition-colors"
+                            <span class="flex justify-between items-baseline mb-2"><span class="text-ink text-sm font-semibold">工作內容 <span
+                                    class="text-red-500">*</span></span><span class="text-xs text-ink-muted"><span data-char-count="task_desc" class="num">0</span> 字</span></span>
+                            <textarea id="task_desc" name="description" required
+                                class="input h-auto resize-y min-h-[160px] py-2"
                                 placeholder="詳細敘述工作內容..."></textarea>
                         </label>
                     </div>
 
                     <div class="w-full">
                         <label class="flex flex-col">
-                            <span class="text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">備註 <span
-                                    class="text-slate-400 font-normal ml-1">(選填)</span></span>
+                            <span class="text-ink text-sm font-semibold mb-2">備註 <span
+                                    class="text-ink-muted font-normal ml-1">(選填)</span></span>
                             <textarea name="notes"
-                                class="form-input flex w-full resize-y rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 min-h-[100px] p-4 text-sm font-normal transition-colors"
+                                class="input h-auto resize-y min-h-[100px] py-2"
                                 placeholder="其他備註事項..."></textarea>
                         </label>
                     </div>
 
-                    <div class="flex justify-end gap-4 mt-10 pt-6 border-t border-slate-200 dark:border-slate-800">
+                    <div class="flex justify-end gap-3 mt-10 pt-6 border-t border-line">
+                        <button type="button" id="reset_form" class="btn btn-ghost mr-auto"><span class="material-symbols-outlined text-[18px]">restart_alt</span>重設欄位</button>
                         <a href="{{ url_for('index') }}"
-                            class="px-6 py-2.5 rounded-lg text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium text-sm transition-colors text-center">取消</a>
+                            class="btn btn-secondary">取消</a>
                         <button type="submit"
-                            class="px-6 py-2.5 rounded-lg text-white bg-primary hover:bg-blue-600 font-medium text-sm transition-colors shadow-sm flex items-center gap-2">
+                            class="btn btn-primary">
                             <span class="material-symbols-outlined text-[18px]">save</span>送出
                         </button>
                     </div>
@@ -157,4 +146,16 @@
         </div>
     </div>
 </div>
+<script>
+document.getElementById('reset_form')?.addEventListener('click', function () {
+    confirmDialog('確定要清空所有已填欄位？', {title: '重設表單', confirmText: '清空'}).then(ok => {
+        if (!ok) return;
+        const f = document.getElementById('task_desc').form;
+        f.reset();
+        f.querySelectorAll('.combo-input').forEach(i => { i.value = ''; });
+        f.querySelectorAll('input[type=hidden]').forEach(i => { i.value = ''; });
+        f.dispatchEvent(new Event('input'));
+    });
+});
+</script>
 {% endblock %}

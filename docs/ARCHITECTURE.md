@@ -1,6 +1,6 @@
 # ARCHITECTURE — proj-dashboard (reference)
 
-Extracted from the old CLAUDE.md on 2026-07-06; updated for v1.4.4 on 2026-10-08. This is a convenience map — the code
+Extracted from the old CLAUDE.md on 2026-07-06; updated for v2.0.0 on 2026-10-17. This is a convenience map — the code
 is the source of truth. If this file disagrees with the code, fix this file
 (see global `40-maintenance.md`).
 
@@ -20,7 +20,10 @@ core/
     tasks.py          task (work-hours) CRUD
     admin.py          admin login, backup API, CSV export/import
     manage.py         personnel / representative / category management
-templates/          Jinja2 templates (base.html = shared document, styles and scripts)
+templates/          Jinja2 templates; base.html = shared document, theme tokens, component CSS, motion CSS
+  _header.html        shared header (nav, theme toggle, admin entry, version chip)
+  _flash.html         shared flash messages
+  _confirm.html       shared <dialog> confirm
 static/
   css/style.css, js/main.js, js/tailwind-config.js, avatars/
 instance/app.db     SQLite DB (not in VCS); backups in instance/backups/, logs in instance/logs/
@@ -34,7 +37,7 @@ requirements.txt    exported from uv.lock for Docker
 AGENTS.md           agent change, teaching, version and release rules
 .github/workflows/deploy.yml  hosted CI followed by self-hosted deployment
 scripts/deploy.sh   exact-commit deployment and conflict guards
-tests/              stdlib application and Linux deployment checks
+tests/              stdlib application and Linux deployment checks; tests/test_ui.py = rendered-page checks for the v2 UI
 docs/MAINTAINERS.md development, deployment and server migration instructions
 ```
 
@@ -94,8 +97,7 @@ Admin, session-gated (`admin.py`, `manage.py`):
   (`core/helpers.py`) — `history.back()` was removed because bfcache served stale
   pages. Do not reintroduce it.
 - Frontend dates are parsed with `parseLocalDate()` — defined inline in
-  `templates/proj_timeline.html` (~line 402), NOT in `static/js/main.js` (that file
-  is combobox code). `new Date('YYYY-MM-DD')` is treated as UTC and shifts months
+  `templates/proj_timeline.html`, NOT in `static/js/main.js`. `new Date('YYYY-MM-DD')` is treated as UTC and shifts months
   (April bled into May).
 - `Project.status` holds a single value, one of 進行中/等待中/暫緩中/已結案, set via
   a dropdown in the add/edit forms. The project list/timeline/manage-DB table
@@ -116,8 +118,10 @@ Admin, session-gated (`admin.py`, `manage.py`):
   categories first, then personnel, then projects (auto-creates any missing
   rep/category, same as `import_db`), then tasks last since each task row
   resolves its project by name.
-- Dashboard: four public feature cards. The top-right link shows 「管理者登入」
-  when logged out and 「資料庫管理」 when authenticated; there is no DB card.
+- Dashboard: four public feature cards and three stat cards with chips (month-over-month
+  work days, overdue = status not 已結案 and `end_date` before today, personnel who
+  reported this month). The admin link lives in the shared header on every page:
+  「管理者登入」 when logged out, 「資料庫管理」 when authenticated; there is no DB card.
   `POST /manage-db-login` validates the configured password, sets
   `session['db_admin_auth'] = True`, and redirects directly to `/manage-db`.
   A wrong password redirects back to login without granting access.
@@ -140,6 +144,32 @@ Admin, session-gated (`admin.py`, `manage.py`):
   date, blank clears it, and a missing column preserves existing dates. Invalid
   dates follow the import error/rollback path; representative form validation
   rejects the update before changing its name or linked projects.
+- Frontend structure (v2 "Obsidian Precision" UI; Tailwind Play CDN, no build step):
+  - `base.html` includes `_header.html`, `_flash.html` and
+    `_confirm.html` (blocks `site_header` and `flash` are overridable). Header nav
+    highlighting comes from `request.endpoint` (`nav_items` in `_header.html`).
+  - Theme: an inline script in `<head>` reads `localStorage.theme`
+    (`light` | `dark` | `system`, default `dark`) and toggles `.dark` on `<html>` before
+    first paint; the header button (`[data-theme-toggle]`, `main.js`) cycles modes.
+  - Colors are CSS variables in `base.html` (`:root` light, `.dark` dark: `--surface`,
+    `--surface-muted`, `--line`, `--ink`, `--ink-muted`, `--st-*` status colors).
+    `static/js/tailwind-config.js` remaps the slate/blue palettes and exposes them as
+    semantic utilities (`bg-surface`, `text-ink`, `border-line`, `status-*`). Prefer the
+    tokens over raw `slate-*`.
+  - Component classes in `base.html` (`type="text/tailwindcss"` so `@apply` works):
+    `.btn` (+ `-primary/-secondary/-ghost/-danger`), `.input`, `.panel`, `.num`.
+  - Motion CSS in `base.html`: `anim-pop`, `anim-dropdown`, `anim-rise`, `num-pop`
+    (stagger via `--i`), `shake`, `.interactive`, `[data-tabs]` + `.tab-indicator`,
+    `:user-invalid` red border; all disabled under `prefers-reduced-motion`.
+  - `static/js/main.js` helpers: `initCombobox`, `confirmDialog(msg, {title, confirmText})`
+    -> Promise<boolean> (fails closed), `<form|a data-confirm="...">` auto-confirm,
+    theme toggle, flash dismiss (success auto-hides after 4 s, errors stay),
+    `downloadCsv(filename, rows)` (UTF-8 BOM, formula-injection guard),
+    `filterRows(input, rowSelector, noMatchId, extraTest)`, `[data-hours-total]` /
+    `[data-hours]` / `[data-char-count]` auto-binding on task forms, `invalid` shake,
+    and the `[data-tabs]` sliding indicator.
+  - `tests/test_ui.py` renders pages with the Flask test client (temporary instance dir)
+    and asserts the v2 behaviors (e.g. dashboard metrics).
 - Avatar upload: PNG/JPG/GIF/WebP only, max 5 MB.
 - Admin auth: `session['db_admin_auth']`; password from `DB_ADMIN_PASSWORD`.
   `SECRET_KEY` and `DB_ADMIN_PASSWORD` have NO defaults — `app.py` raises at
