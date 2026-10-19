@@ -1,6 +1,6 @@
 # ARCHITECTURE — proj-dashboard (reference)
 
-Extracted from the old CLAUDE.md on 2026-07-06; updated for v2.1.1 on 2026-10-19. This is a convenience map — the code
+Extracted from the old CLAUDE.md on 2026-07-06; updated for v2.2.0 on 2026-10-19. This is a convenience map — the code
 is the source of truth. If this file disagrees with the code, fix this file
 (see global `40-maintenance.md`).
 
@@ -75,7 +75,7 @@ Public (`core/routes/main.py`, `projects.py`, `tasks.py`):
 | `GET/POST /add-task`, `/edit-task/<id>`; `POST /delete-task/<id>` | task CRUD |
 | `GET /timeline` | Gantt chart (month/quarter/year zoom) |
 | `GET /project/<id>` | project detail page |
-| `GET /employee-case` | lands on the overview unless `?person=` or `?view=person` is given (person page); `?view=overview[&month=YYYY-MM]` = month calendar of every employee's records (grid and dots rendered server-side by `build_overview()` in `core/routes/main.py`, day popover is a `<dialog>` fed by inline JSON). Task table shows 20 rows at a time (client-side 「載入更多」). |
+| `GET /employee-case` | lands on the overview unless `?person=` or `?view=person` is given (person page); `?view=overview[&month=YYYY-MM]` = month calendar of every employee's records (grid and dots rendered server-side by `build_overview()` in `core/routes/main.py`, day popover is a `<dialog>` fed by inline JSON: compact employee-dot + project list, per-record details in collapsed `<details>`, no avatars). Person page renders only the first 20 task rows (`templates/_employee_task_rows.html`); 「載入更多」 fetches the next slice from `GET /employee-case/tasks?person=&offset=&limit=[&project_id=]` (JSON `{html,count,total,next_offset}`, date desc + id desc). Stat cards, pie chart and group-header totals come from `_person_task_aggregates()` (full set, passed as `TASK_AGG`), not from loaded rows. |
 | `GET /overtime-stats` | overtime statistics |
 
 Admin, session-gated (`admin.py`, `manage.py`):
@@ -106,6 +106,11 @@ Admin, session-gated (`admin.py`, `manage.py`):
 - Frontend dates are parsed with `parseLocalDate()` — defined inline in
   `templates/proj_timeline.html`, NOT in `static/js/main.js`. `new Date('YYYY-MM-DD')` is treated as UTC and shifts months
   (April bled into May).
+- `/timeline` filters are all client-side (the table holds every project). Besides keyword/status/rep/personnel and the
+  month range, a year/month/day period filter (`getPeriod()`, `periodOverlaps()`) keeps projects whose
+  [start, end] overlaps the period; a project with no end_date counts as ongoing until today (or its own start if
+  later). State lives in the URL (`?pg=year|month|day&pv=<value>`). Search matches are wrapped in
+  `<mark class="kw-hit">` in the name cell by `highlightKeyword()` (text nodes only).
 - `Project.status` holds a single value, one of 進行中/等待中/暫緩中/已結案, set via
   a dropdown in the add/edit forms. The project list/timeline/manage-DB table
   status filters are multi-select (any-of match against each row's single value)

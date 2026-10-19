@@ -41,6 +41,10 @@
                           background: rgb(var(--surface)); color: rgb(var(--ink)); }
             .cal-dialog[open] { display: flex; flex-direction: column; }
             .cal-dialog::backdrop { background: rgba(0, 0, 0, .55); }
+            .day-rec > summary { list-style: none; }
+            .day-rec > summary::-webkit-details-marker { display: none; }
+            .day-rec .day-rec-chev { transition: transform .15s ease; }
+            .day-rec[open] .day-rec-chev { transform: rotate(90deg); }
             @media (max-width: 640px) {
                 .cal-cell { min-height: 58px; padding: 3px; gap: 3px; }
                 .cal-dot { width: 7px; height: 7px; }
@@ -114,7 +118,6 @@
                         <span class="text-ink-muted">本月有紀錄：</span>
                         {% for e in overview.employees %}
                         <span class="inline-flex items-center gap-1.5 text-ink">
-                            <img src="{{ e.avatar }}" alt="" loading="lazy" class="size-5 rounded-full object-cover bg-surface-muted">
                             <span class="cal-dot" style="background:{{ e.color }}"></span>{{ e.display }}{% if e.resigned %}<span class="text-xs text-ink-muted">（已離職）</span>{% endif %}
                         </span>
                         {% else %}
@@ -194,7 +197,7 @@
                                         </span>
                                         <div>
                                             <div class="text-ink-muted text-sm">工作紀錄</div>
-                                            <div class="font-bold text-ink">{{ tasks|length }} 筆</div>
+                                            <div class="font-bold text-ink">{{ task_count }} 筆</div>
                                         </div>
                                     </div>
                                 </div>
@@ -281,52 +284,8 @@
                                     </tr>
                                 </thead>
                                 <tbody id="task-tbody" class="divide-y divide-line">
-                                    {% for task in tasks %}
-                                    <tr class="hover:bg-surface-muted transition-colors align-top"
-                                        data-date="{{ task.date.strftime('%Y-%m-%d') }}"
-                                        data-total-hours="{{ task.total_hours }}"
-                                        data-day-hours="{{ task.day_hours or 0 }}"
-                                        data-ot-hours="{{ task.overtime_hours or 0 }}"
-                                        data-night-hours="{{ task.night_hours or 0 }}"
-                                        data-project="{{ task.project.name if task.project else 'N/A' }}">
-                                        <td class="px-6 py-4 text-sm text-ink-muted whitespace-nowrap">
-                                            {{ task.date.strftime('%Y/%m/%d') }}</td>
-                                        <td class="px-6 py-4 text-sm font-medium whitespace-nowrap">
-                                            {% if task.project %}<a href="{{ url_for('project_detail', id=task.project_id) }}"
-                                                class="inline-flex items-center gap-1 text-ink hover:text-primary hover:underline"><span class="material-symbols-outlined text-[16px] text-ink-muted">folder</span>{{ task.project.name }}</a>{% else %}N/A{% endif %}
-                                        </td>
-                                        <td class="px-6 py-4 text-sm whitespace-nowrap">
-                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-sm font-medium bg-primary/10 text-primary num">{{ '%g'|format(task.total_hours|round(1)) }} 小時</span>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm text-ink-muted whitespace-nowrap text-center">
-                                            {{ task.day_hours if task.day_hours is not none else '-' }} /
-                                            {{ task.overtime_hours if task.overtime_hours is not none else '-' }} /
-                                            {{ task.night_hours if task.night_hours is not none else '-' }}
-                                        </td>
-                                        <td class="px-6 py-4 text-sm text-ink-muted whitespace-pre-wrap break-words max-w-[300px] text-left align-top">{{ task.description }}</td>
-                                        <td class="px-6 py-4 text-sm text-ink-muted whitespace-pre-wrap break-words max-w-[200px] text-left align-top">{{ task.notes if task.notes else '' }}</td>
-                                        <td class="px-6 py-4 text-center align-top">
-                                            <div class="flex items-center justify-center gap-1">
-                                                <a href="{{ url_for('edit_task', id=task.id, redirect_to=url_for('employee_case', person=selected)) }}"
-                                                    class="text-ink-muted hover:text-primary hover:bg-primary/10 p-1.5 rounded-md transition-colors"
-                                                    title="編輯此紀錄">
-                                                    <span class="material-symbols-outlined text-[18px]">edit</span>
-                                                </a>
-                                                {% if is_admin %}
-                                                <form action="{{ url_for('delete_task', id=task.id) }}" method="POST"
-                                                    data-confirm="確定要刪除 {{ task.date.strftime('%Y/%m/%d') }}「{{ task.project.name if task.project else 'N/A' }}」這筆工作紀錄嗎？此操作無法復原。" class="inline">
-                                                    <input type="hidden" name="redirect_to" value="{{ url_for('employee_case', person=selected) }}" />
-                                                    <button type="submit"
-                                                        class="text-ink-muted hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-md transition-colors"
-                                                        title="刪除此紀錄">
-                                                        <span class="material-symbols-outlined text-[18px]">delete</span>
-                                                    </button>
-                                                </form>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% else %}
+                                    {% include "_employee_task_rows.html" %}
+                                    {% if not tasks %}
                                     <tr>
                                         <td colspan="7" class="px-6 py-12 text-center text-ink-muted">
                                             <div class="flex flex-col items-center gap-3">
@@ -337,14 +296,14 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    {% endfor %}
+                                    {% endif %}
                                 </tbody>
                             </table>
                         </div>
                         {% if tasks|length > 0 %}
                         <div id="load-more-bar" class="flex flex-wrap items-center justify-center gap-3 border-t border-line px-4 py-3">
-                            <span id="load-more-count" class="text-sm text-ink-muted num">顯示 {{ [tasks|length, 20]|min }} / 共 {{ tasks|length }} 筆</span>
-                            {% if tasks|length > 20 %}
+                            <span id="load-more-count" class="text-sm text-ink-muted num">顯示 {{ tasks|length }} / 共 {{ task_count }} 筆</span>
+                            {% if task_count > tasks|length %}
                             <button type="button" id="load-more-btn" onclick="loadMoreRows()" class="btn btn-secondary">
                                 <span class="material-symbols-outlined text-[16px]" aria-hidden="true">expand_more</span>載入更多
                             </button>
@@ -414,21 +373,27 @@
         const total = recs.reduce(function (s, r) { return s + (r.total || 0); }, 0);
         document.getElementById('day-dialog-sub').textContent = people + ' 位員工 · ' + recs.length + ' 筆 · 共 ' + fmtH(total) + ' 小時';
         document.getElementById('day-dialog-list').innerHTML = recs.map(function (r) {
-            const e = OV_EMP[r.p] || { display: r.p, color: '#9ca0aa', avatar: '' };
-            const proj = r.url
-                ? '<a href="' + esc(r.url) + '" class="text-primary hover:underline">' + esc(r.project) + '</a>'
-                : esc(r.project);
-            return '<li class="flex flex-col gap-1.5 px-4 py-3">' +
-                '<div class="flex items-center gap-2">' +
-                    (e.avatar ? '<img src="' + esc(e.avatar) + '" alt="" class="size-7 rounded-full object-cover bg-surface-muted shrink-0">' : '') +
+            const e = OV_EMP[r.p] || { display: r.p, color: '#9ca0aa' };
+            const link = r.url
+                ? '<a href="' + esc(r.url) + '" class="inline-flex items-center gap-1 text-primary hover:underline"><span class="material-symbols-outlined text-[14px]" aria-hidden="true">folder</span>前往專案</a>'
+                : '';
+            // Compact summary (employee + project); details collapsed until the row is clicked.
+            return '<li><details class="day-rec">' +
+                '<summary class="flex cursor-pointer items-center gap-2 px-4 py-2.5 text-sm hover:bg-surface-muted">' +
+                    '<span class="material-symbols-outlined day-rec-chev text-[18px] text-ink-muted" aria-hidden="true">chevron_right</span>' +
                     '<span class="cal-dot" style="background:' + esc(e.color) + '"></span>' +
-                    '<span class="text-sm font-medium text-ink">' + esc(e.display) + (e.resigned ? '<span class="text-xs text-ink-muted font-normal">（已離職）</span>' : '') + '</span>' +
-                    '<span class="ml-auto rounded-sm bg-primary/10 px-1.5 py-0.5 text-sm font-medium text-primary num whitespace-nowrap">' + fmtH(r.total) + ' 小時</span>' +
+                    '<span class="font-medium text-ink whitespace-nowrap">' + esc(e.display) + (e.resigned ? '<span class="text-xs text-ink-muted font-normal">（已離職）</span>' : '') + '</span>' +
+                    '<span class="min-w-0 truncate text-ink-muted">' + esc(r.project) + '</span>' +
+                '</summary>' +
+                '<div class="flex flex-col gap-1.5 px-4 pb-3 pl-[2.75rem] text-sm">' +
+                    (r.desc ? '<p class="whitespace-pre-wrap break-words text-ink">' + esc(r.desc) + '</p>' : '') +
+                    (r.notes ? '<p class="whitespace-pre-wrap break-words text-ink-muted"><span class="text-xs">備註：</span>' + esc(r.notes) + '</p>' : '') +
+                    '<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted num">' +
+                        '<span class="rounded-sm bg-primary/10 px-1.5 py-0.5 text-sm font-medium text-primary whitespace-nowrap">' + fmtH(r.total) + ' 小時</span>' +
+                        '<span>日/加/夜：' + fmtH(r.day) + ' / ' + fmtH(r.ot) + ' / ' + fmtH(r.night) + ' 小時</span>' + link +
+                    '</div>' +
                 '</div>' +
-                '<div class="text-sm">' + proj + '</div>' +
-                (r.desc ? '<p class="whitespace-pre-wrap break-words text-sm text-ink-muted">' + esc(r.desc) + '</p>' : '') +
-                '<div class="text-xs text-ink-muted num">日/加/夜：' + fmtH(r.day) + ' / ' + fmtH(r.ot) + ' / ' + fmtH(r.night) + ' 小時</div>' +
-                '</li>';
+                '</details></li>';
         }).join('');
         const dlg = document.getElementById('day-dialog');
         if (!dlg.open) dlg.showModal();
@@ -440,9 +405,19 @@
 {% else %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-    // ── Pagination (20 rows at a time) ────────────────────────────────────────
-    const PAGE_SIZE = 20;
-    let visibleLimit = PAGE_SIZE;
+    // ── Server-side batches ───────────────────────────────────────────────────
+    // Only the first page of rows is in the HTML; 「載入更多」 fetches the next slice.
+    // TASK_AGG covers ALL of the person's tasks (computed server-side), one entry per
+    // [date, project, count, total, day, overtime, night, project_id]: stat cards, pie chart and
+    // group-header totals come from it, never from the rows currently loaded.
+    const TASK_AGG = {{ task_agg|tojson }};
+    const TASK_TOTAL = {{ task_count }};
+    const PAGE_SIZE = {{ page_size }};
+    const TASKS_URL = {{ url_for('employee_case_tasks')|tojson }};
+    const TASKS_PERSON = {{ selected|tojson }};
+    const TASKS_PROJECT_ID = {{ project_id|tojson }};
+    let loadedCount = document.querySelectorAll('#task-tbody tr[data-date]').length;
+    let loadingMore = false;
 
     // ── Grouping ──────────────────────────────────────────────────────────────
     const STORAGE_KEY = 'empCaseGroupMode';
@@ -487,7 +462,7 @@
             '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
                 '<span class="material-symbols-outlined grp-chev" style="font-size:18px;color:#94a3b8;transform:' + (expanded ? 'rotate(90deg)' : 'rotate(0)') + ';">chevron_right</span>' +
                 '<span style="font-size:.875rem;font-weight:600;">' + key + '</span>' +
-                '<span style="padding:1px 8px;border-radius:9999px;font-size:.7rem;font-weight:600;background:#e2e8f0;color:#475569;">' + g.rows.length + ' 筆</span>' +
+                '<span style="padding:1px 8px;border-radius:9999px;font-size:.7rem;font-weight:600;background:#e2e8f0;color:#475569;">' + g.count + ' 筆</span>' +
                 '<span style="padding:1px 8px;border-radius:9999px;font-size:.7rem;font-weight:600;background:#dbeafe;color:#1d4ed8;">' + fmtN(g.totalH) + ' 小時</span>' +
                 hoursHtml +
             '</div>';
@@ -512,57 +487,69 @@
             return;
         }
 
-        // Build ordered groups map
-        const groups = new Map();
-        dataRows.forEach(function (row) {
-            const key = getGroupKey(row.dataset.date, mode);
-            if (!groups.has(key)) groups.set(key, { rows: [], totalH: 0, dayH: 0, otH: 0, nightH: 0 });
-            const g = groups.get(key);
-            g.rows.push(row);
-            g.totalH   += parseFloat(row.dataset.totalHours) || 0;
-            g.dayH     += parseFloat(row.dataset.dayHours)  || 0;
-            g.otH      += parseFloat(row.dataset.otHours)   || 0;
-            g.nightH   += parseFloat(row.dataset.nightHours) || 0;
-            row.dataset.gkey = key;
+        // Full-set totals per group (from TASK_AGG), shown even if only part of the group is loaded
+        const full = new Map();
+        TASK_AGG.forEach(function (a) {
+            const key = getGroupKey(a[0], mode);
+            if (!full.has(key)) full.set(key, { count: 0, totalH: 0, dayH: 0, otH: 0, nightH: 0 });
+            const g = full.get(key);
+            g.count += a[2]; g.totalH += a[3]; g.dayH += a[4]; g.otH += a[5]; g.nightH += a[6];
         });
 
-        groups.forEach(function (g, key) {
+        // A header goes before the first loaded row of each group
+        const firstRow = new Map();
+        dataRows.forEach(function (row) {
+            const key = getGroupKey(row.dataset.date, mode);
+            row.dataset.gkey = key;
+            if (!firstRow.has(key)) firstRow.set(key, row);
+        });
+
+        firstRow.forEach(function (row, key) {
             if (!(key in expandedState)) expandedState[key] = true;
-            tbody.insertBefore(buildGroupHeader(key, g, expandedState[key]), g.rows[0]);
+            tbody.insertBefore(buildGroupHeader(key, full.get(key), expandedState[key]), row);
         });
 
         refreshVisibility();
         syncToggleAllBtn();
     }
 
-    // One place decides what is shown: a row is visible iff it is within the first
-    // `visibleLimit` rows AND its group is expanded; a group header is visible iff at
-    // least one of its rows is within the limit (no orphan headers).
+    // A loaded row is hidden iff its group is collapsed; also keeps the count line / button in sync.
     function refreshVisibility() {
         const tbody = document.getElementById('task-tbody');
         if (!tbody) return;
         const rows = Array.from(tbody.querySelectorAll('tr[data-date]'));
-        const groupsWithRows = new Set();
-        rows.forEach(function (r, i) {
-            const within = i < visibleLimit;
+        rows.forEach(function (r) {
             const key = r.dataset.gkey;
-            if (within && key) groupsWithRows.add(key);
-            const collapsed = key && expandedState[key] === false;
-            r.style.display = (within && !collapsed) ? '' : 'none';
+            r.style.display = (key && expandedState[key] === false) ? 'none' : '';
         });
-        tbody.querySelectorAll('tr.grp-header-row').forEach(function (h) {
-            h.style.display = groupsWithRows.has(h.dataset.gkey) ? '' : 'none';
-        });
-        const total = rows.length, shown = Math.min(visibleLimit, total);
+        loadedCount = rows.length;
         const cnt = document.getElementById('load-more-count');
-        if (cnt) cnt.textContent = '顯示 ' + shown + ' / 共 ' + total + ' 筆';
+        if (cnt) cnt.textContent = '顯示 ' + loadedCount + ' / 共 ' + TASK_TOTAL + ' 筆';
         const btn = document.getElementById('load-more-btn');
-        if (btn) btn.style.display = shown >= total ? 'none' : '';
+        if (btn) btn.style.display = loadedCount >= TASK_TOTAL ? 'none' : '';
     }
 
-    function loadMoreRows() {
-        visibleLimit += PAGE_SIZE;
-        refreshVisibility();
+    async function loadMoreRows() {
+        if (loadingMore || loadedCount >= TASK_TOTAL) return;
+        loadingMore = true;
+        const btn = document.getElementById('load-more-btn');
+        if (btn) btn.disabled = true;
+        try {
+            const qs = new URLSearchParams({ person: TASKS_PERSON, offset: loadedCount, limit: PAGE_SIZE });
+            if (TASKS_PROJECT_ID) qs.set('project_id', TASKS_PROJECT_ID);
+            const resp = await fetch(TASKS_URL + '?' + qs.toString(), { headers: { 'Accept': 'application/json' } });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const data = await resp.json();
+            const tbody = document.getElementById('task-tbody');
+            tbody.insertAdjacentHTML('beforeend', data.html);
+            applyGrouping(currentMode);   // adds headers for groups that just appeared
+        } catch (err) {
+            const cnt = document.getElementById('load-more-count');
+            if (cnt) cnt.textContent = '載入失敗，請再試一次';
+        } finally {
+            loadingMore = false;
+            if (btn) btn.disabled = false;
+        }
     }
 
     function toggleGroup(key) {
@@ -650,14 +637,11 @@
     }
 
     function buildEmpPieData(gkey) {
-        const sel = gkey
-            ? '#task-tbody tr[data-date][data-gkey="' + gkey + '"]'
-            : '#task-tbody tr[data-date]';
-        const rows = Array.from(document.querySelectorAll(sel));
+        // From the full-set aggregates, so it stays correct while rows are only partly loaded
         const totals = {};
-        rows.forEach(function(r) {
-            const proj = r.dataset.project || 'N/A';
-            totals[proj] = (totals[proj] || 0) + (parseFloat(r.dataset.totalHours) || 0);
+        TASK_AGG.forEach(function(a) {
+            if (gkey && getGroupKey(a[0], currentMode) !== gkey) return;
+            totals[a[1]] = (totals[a[1]] || 0) + a[3];
         });
         const sorted = Object.entries(totals).sort(function(a, b) { return b[1] - a[1]; });
         return {

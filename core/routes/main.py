@@ -1,10 +1,9 @@
 from datetime import date, timedelta
 from zlib import crc32
 
-from flask import render_template, request, session, url_for
+from flask import jsonify, render_template, request, session, url_for
 from sqlalchemy import func
 from ..extensions import db
-from ..helpers import avatar_url
 from ..models import Project, Task, Personnel
 
 # Overview calendar: one stable colour per employee (rank by Personnel.id, so it is the
@@ -47,14 +46,13 @@ def build_overview(month_raw):
                 'name': t.personnel,
                 'display': (p.display_name or p.name) if p else t.personnel,
                 'color': color_of.get(t.personnel) or OVERVIEW_PALETTE[crc32(t.personnel.encode('utf-8')) % len(OVERVIEW_PALETTE)],
-                'avatar': avatar_url(t.personnel, p.avatar_filename if p else None),
                 'resigned': bool(p and p.resigned_date),
             })
         days.setdefault(t.date.isoformat(), []).append({
             'p': t.personnel,
             'project': t.project.name if t.project else 'N/A',
             'url': url_for('project_detail', id=t.project_id) if t.project else '',
-            'desc': t.description or '',
+            'desc': t.description or '', 'notes': t.notes or '',
             'day': t.day_hours or 0, 'ot': t.overtime_hours or 0, 'night': t.night_hours or 0,
             'total': t.total_hours,
         })
@@ -89,6 +87,32 @@ def build_overview(month_raw):
         'prev': f'{prev_y:04d}-{prev_m:02d}', 'next': f'{next_y:04d}-{next_m:02d}',
         'is_current': (y, m) == (today.year, today.month),
     }
+
+
+TASK_PAGE_SIZE = 20  # person page: rows rendered first / fetched per 「載入更多」
+
+
+def _person_task_query(person, project_id=None):
+    q = Task.query.filter_by(personnel=person)
+    if project_id:
+        q = q.filter_by(project_id=project_id)
+    # id is a tiebreaker so offset paging never overlaps or skips same-day rows
+    return q.order_by(Task.date.desc(), Task.id.desc())
+
+
+def _person_task_aggregates(person, project_id=None):
+    """Whole-set aggregates [[iso_date, project_name, count, total, day, ot, night], ...] for the
+    stat cards, pie chart and group-header totals (independent of how many rows are loaded)."""
+    day, ot, night = (func.coalesce(func.sum(func.coalesce(c, 0)), 0)
+                      for c in (Task.day_hours, Task.overtime_hours, Task.night_hours))
+    q = (db.session.query(Task.date, Task.project_id, Project.name, func.count(Task.id), day, ot, night)
+         .outerjoin(Project, Project.id == Task.project_id)
+         .filter(Task.personnel == person))
+    if project_id:
+        q = q.filter(Task.project_id == project_id)
+    q = q.group_by(Task.date, Task.project_id, Project.name).order_by(Task.date.desc())
+    return [[d.isoformat(), pname or 'N/A', n, float(a + b + c), float(a), float(b), float(c), pid]
+            for d, pid, pname, n, a, b, c in q.all()]
 
 
 def register(app):
@@ -132,6 +156,7 @@ def register(app):
             return render_template('employee_case.html', view='person',
                                    personnel_list=[], selected=None, display_name='',
                                    avatar_filename=None, tasks=[], total_hours=0,
+                                   task_count=0, task_agg=[], page_size=TASK_PAGE_SIZE, project_id=None,
                                    project_count=0, filter_project=None)
         personnel_list = [(p.name, p.display_name or p.name) for p in personnel_all]
         selected = request.args.get('person', personnel_list[0][0])
@@ -141,12 +166,10 @@ def register(app):
             selected = selected_p.name
 
         project_id = request.args.get('project_id', type=int)
-        filter_project = None
-        if project_id:
-            tasks = Task.query.filter_by(personnel=selected, project_id=project_id).order_by(Task.date.desc()).all()
-            filter_project = Project.query.get(project_id)
-        else:
-            tasks = Task.query.filter_by(personnel=selected).order_by(Task.date.desc()).all()
+        filter_project = Project.query.get(project_id) if project_id else None
+        query = _person_task_query(selected, project_id)
+        agg = _person_task_aggregates(selected, project_id)
+        tasks = query.limit(TASK_PAGE_SIZE).all()
 
         return render_template('employee_case.html',
                                view='person',
@@ -155,10 +178,31 @@ def register(app):
                                display_name=selected_p.display_name or selected_p.name,
                                avatar_filename=selected_p.avatar_filename,
                                tasks=tasks,
-                               total_hours=sum(t.total_hours for t in tasks),
-                               project_count=len(set(t.project_id for t in tasks)),
+                               task_count=sum(a[2] for a in agg),
+                               task_agg=agg,
+                               page_size=TASK_PAGE_SIZE,
+                               project_id=project_id,
+                               total_hours=sum(a[3] for a in agg),
+                               project_count=len({a[7] for a in agg}),
                                filter_project=filter_project,
                                is_admin=bool(session.get('db_admin_auth')))
+
+    @app.route('/employee-case/tasks')
+    def employee_case_tasks():
+        """Next slice of a person's task rows (same order/markup as the page) for 「載入更多」."""
+        person = request.args.get('person', '')
+        if not Personnel.query.filter_by(name=person).first():
+            return jsonify({'error': 'unknown person'}), 404
+        project_id = request.args.get('project_id', type=int)
+        offset = max(request.args.get('offset', 0, type=int), 0)
+        limit = min(max(request.args.get('limit', TASK_PAGE_SIZE, type=int), 1), 100)
+        query = _person_task_query(person, project_id)
+        total = query.order_by(None).count()
+        rows = query.offset(offset).limit(limit).all()
+        html = render_template('_employee_task_rows.html', tasks=rows, selected=person,
+                               is_admin=bool(session.get('db_admin_auth')))
+        return jsonify({'html': html, 'count': len(rows), 'offset': offset,
+                        'next_offset': offset + len(rows), 'total': total})
 
     @app.route('/overtime-stats')
     def overtime_stats():

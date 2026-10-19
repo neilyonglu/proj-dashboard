@@ -49,6 +49,20 @@
                 </button>
             </div>
 
+            <!-- Period filter: year / month / day (project period must overlap it) -->
+            <div class="flex items-center gap-1 sm:gap-2" id="period-filter">
+                <span class="material-symbols-outlined text-[18px] text-slate-400">event</span>
+                <select id="filter-gran" onchange="onGranChange()" class="input h-8 px-1 sm:px-2 text-xs w-[64px]" title="日期篩選粒度">
+                    <option value="">全部</option>
+                    <option value="year">年</option>
+                    <option value="month">月</option>
+                    <option value="day">日</option>
+                </select>
+                <select id="filter-year" onchange="applyDateFilter()" class="input h-8 px-1 sm:px-2 text-xs w-[84px] hidden" title="年份"></select>
+                <input type="month" id="filter-month" onchange="applyDateFilter()" class="input h-8 px-1 sm:px-2 text-xs w-[110px] sm:w-[130px] hidden" title="月份">
+                <input type="date" id="filter-day" onchange="applyDateFilter()" class="input h-8 px-1 sm:px-2 text-xs w-[120px] sm:w-[140px] hidden" title="日期">
+            </div>
+
             <div class="flex items-center bg-surface-muted rounded-lg p-1 border border-line hidden shrink-0"
                 id="zoom-controls">
                 <button onclick="zoomTimeline(-0.2)"
@@ -115,6 +129,16 @@
         }
         #view-timeline::-webkit-scrollbar-thumb:hover {
             background: #64748b;
+        }
+
+        /* Search keyword highlight (status-active tokens: amber, readable in light and dark) */
+        mark.kw-hit {
+            background: rgb(var(--st-active-bg));
+            color: rgb(var(--st-active-fg));
+            font-weight: 700;
+            border-radius: 2px;
+            padding: 0 1px;
+            box-shadow: 0 0 0 1px rgb(var(--st-active-fg) / .45);
         }
 
         /* #5 Floating read-only tooltip */
@@ -1111,6 +1135,7 @@
                 const personnelVal = filterPersonnelEl ? filterPersonnelEl.value : '';
                 const keywordVal = filterKeywordEl ? filterKeywordEl.value.toLowerCase().trim() : '';
 
+                const period = getPeriod();
                 // Convert YYYY-MM to start/end of that month
                 let filterStart = null, filterEnd = null;
                 if (filterStartStr) {
@@ -1124,12 +1149,12 @@
 
                 // Filter table rows (overlap check)
                 document.querySelectorAll('.project-row').forEach(row => {
-                    filterRow(row, filterStart, filterEnd, repVal, statusVals, personnelVal, keywordVal);
+                    filterRow(row, filterStart, filterEnd, repVal, statusVals, personnelVal, keywordVal, period);
                 });
 
                 // Filter timeline rows (overlap check) + recompute bar positions
                 document.querySelectorAll('.timeline-project-row').forEach(row => {
-                    filterRow(row, filterStart, filterEnd, repVal, statusVals, personnelVal, keywordVal);
+                    filterRow(row, filterStart, filterEnd, repVal, statusVals, personnelVal, keywordVal, period);
                 });
 
                 // Update timeline range to match filter
@@ -1142,6 +1167,150 @@
                     const show = all.length > 0 && !anyVisible;
                     el.classList.toggle('hidden', !show);
                     el.classList.toggle('flex', show);
+                });
+
+                highlightKeyword(keywordVal);
+                persistPeriod();
+            }
+
+            // =============================================
+            // Period filter (year / month / day) + keyword highlight
+            // =============================================
+            const TODAY_LOCAL = (function () { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); })();
+            const pad2 = n => String(n).padStart(2, '0');
+
+            // Returns {start, end} (local Dates, inclusive) for the selected granularity, or null.
+            function getPeriod() {
+                const gran = document.getElementById('filter-gran').value;
+                if (gran === 'year') {
+                    const y = parseInt(document.getElementById('filter-year').value, 10);
+                    if (!y) return null;
+                    return { start: new Date(y, 0, 1), end: new Date(y, 11, 31) };
+                }
+                if (gran === 'month') {
+                    const v = document.getElementById('filter-month').value; // YYYY-MM
+                    if (!v) return null;
+                    const [y, m] = v.split('-').map(Number);
+                    return { start: new Date(y, m - 1, 1), end: new Date(y, m, 0) };
+                }
+                if (gran === 'day') {
+                    const d = parseLocalDate(document.getElementById('filter-day').value);
+                    return d ? { start: d, end: d } : null;
+                }
+                return null;
+            }
+
+            // Overlap rule: project [start, end] intersects the period. A project with no end_date
+            // is treated as ongoing: it ends at today, or at its own start if that is in the future.
+            function periodOverlaps(startStr, endStr, period) {
+                const s = parseLocalDate(startStr);
+                let e = endStr ? parseLocalDate(endStr) : (s > TODAY_LOCAL ? s : TODAY_LOCAL);
+                return !(e < period.start || s > period.end);
+            }
+
+            function populateYearOptions() {
+                const sel = document.getElementById('filter-year');
+                let minY = TODAY_LOCAL.getFullYear(), maxY = minY;
+                document.querySelectorAll('.project-row').forEach(r => {
+                    const s = r.getAttribute('data-start'), e = r.getAttribute('data-end');
+                    if (s) minY = Math.min(minY, parseInt(s.slice(0, 4), 10));
+                    if (s) maxY = Math.max(maxY, parseInt(s.slice(0, 4), 10));
+                    if (e) maxY = Math.max(maxY, parseInt(e.slice(0, 4), 10));
+                });
+                sel.innerHTML = '';
+                for (let y = maxY; y >= minY; y--) {
+                    const o = document.createElement('option');
+                    o.value = String(y);
+                    o.textContent = y + ' 年';
+                    sel.appendChild(o);
+                }
+                sel.value = String(TODAY_LOCAL.getFullYear());
+            }
+
+            function syncPeriodInputs() {
+                const gran = document.getElementById('filter-gran').value;
+                document.getElementById('filter-year').classList.toggle('hidden', gran !== 'year');
+                document.getElementById('filter-month').classList.toggle('hidden', gran !== 'month');
+                document.getElementById('filter-day').classList.toggle('hidden', gran !== 'day');
+            }
+
+            function onGranChange() {
+                const gran = document.getElementById('filter-gran').value;
+                const t = TODAY_LOCAL;
+                // Default the picker to the current period so choosing a granularity filters immediately
+                if (gran === 'month' && !document.getElementById('filter-month').value)
+                    document.getElementById('filter-month').value = t.getFullYear() + '-' + pad2(t.getMonth() + 1);
+                if (gran === 'day' && !document.getElementById('filter-day').value)
+                    document.getElementById('filter-day').value = t.getFullYear() + '-' + pad2(t.getMonth() + 1) + '-' + pad2(t.getDate());
+                syncPeriodInputs();
+                applyDateFilter();
+            }
+
+            // Keep the period in the URL (?pg=year|month|day&pv=value) so reload/bookmark restores it.
+            function persistPeriod() {
+                try {
+                    const gran = document.getElementById('filter-gran').value;
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('pg');
+                    url.searchParams.delete('pv');
+                    if (gran && getPeriod()) {
+                        url.searchParams.set('pg', gran);
+                        url.searchParams.set('pv', document.getElementById('filter-' + gran).value);
+                    }
+                    history.replaceState(null, '', url);
+                } catch (e) { /* history API unavailable: filter just won't survive reload */ }
+            }
+
+            function restorePeriodFromUrl() {
+                const p = new URLSearchParams(window.location.search);
+                const gran = p.get('pg'), val = p.get('pv');
+                if (!['year', 'month', 'day'].includes(gran) || !val) return;
+                const el = document.getElementById('filter-' + gran);
+                el.value = val;
+                if (!el.value) return; // invalid value (e.g. year not in list)
+                document.getElementById('filter-gran').value = gran;
+                syncPeriodInputs();
+            }
+
+            // Wrap case-insensitive keyword matches in <mark> inside the name cell, text nodes only.
+            function clearHighlights(root) {
+                root.querySelectorAll('mark.kw-hit').forEach(m => {
+                    m.replaceWith(document.createTextNode(m.textContent));
+                });
+                root.normalize();
+            }
+
+            function highlightKeyword(kw) {
+                document.querySelectorAll('#project-tbody tr.project-row td[data-col-id="col-name"]').forEach(td => {
+                    clearHighlights(td);
+                    if (!kw) return;
+                    if (td.closest('tr').style.display === 'none') return;
+                    const walker = document.createTreeWalker(td, NodeFilter.SHOW_TEXT, {
+                        acceptNode: n => (n.parentElement && n.parentElement.closest('.material-symbols-outlined'))
+                            ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+                    });
+                    const nodes = [];
+                    while (walker.nextNode()) nodes.push(walker.currentNode);
+                    nodes.forEach(node => {
+                        const text = node.nodeValue;
+                        const lower = text.toLowerCase();
+                        if (lower.length !== text.length) return; // case-folding changed length; skip safely
+                        let idx = lower.indexOf(kw);
+                        if (idx === -1) return;
+                        const frag = document.createDocumentFragment();
+                        let last = 0;
+                        while (idx !== -1) {
+                            if (idx > last) frag.appendChild(document.createTextNode(text.slice(last, idx)));
+                            const m = document.createElement('mark');
+                            m.className = 'kw-hit';
+                            m.textContent = text.slice(idx, idx + kw.length);
+                            frag.appendChild(m);
+                            last = idx + kw.length;
+                            idx = lower.indexOf(kw, last);
+                        }
+                        if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+                        node.parentNode.replaceChild(frag, node);
+                    });
                 });
             }
 
@@ -1207,7 +1376,7 @@
                 });
             }
 
-            function filterRow(row, filterStart, filterEnd, repVal, statusVals, personnelVal, keywordVal) {
+            function filterRow(row, filterStart, filterEnd, repVal, statusVals, personnelVal, keywordVal, period) {
                 const startStr = row.getAttribute('data-start');
                 const endStr = row.getAttribute('data-end');
                 const rowRep = row.getAttribute('data-rep');
@@ -1230,6 +1399,7 @@
                 if (show && statusVals.length && !statusVals.some(s => rowStatusList.includes(s))) show = false;
                 if (show && personnelVal && !rowPersonnel.split(',').includes(personnelVal)) show = false;
                 if (show && keywordVal && !rowName.includes(keywordVal)) show = false;
+                if (show && period && !periodOverlaps(startStr, endStr, period)) show = false;
 
                 row.style.display = show ? '' : 'none';
             }
@@ -1305,6 +1475,10 @@
                 document.getElementById('filter-start').value = '';
                 document.getElementById('filter-end').value = '';
                 document.getElementById('filter-keyword').value = '';
+                document.getElementById('filter-gran').value = '';
+                document.getElementById('filter-month').value = '';
+                document.getElementById('filter-day').value = '';
+                syncPeriodInputs();
                 const filterRepEl = document.getElementById('filter-rep');
                 const filterPersonnelEl = document.getElementById('filter-personnel');
 
@@ -1413,6 +1587,9 @@
                 renderTimeMarkers();
                 setupSegmentTooltip();
                 renderStatusChips();
+                populateYearOptions();
+                restorePeriodFromUrl();
+                if (getPeriod()) applyDateFilter();
 
                 if (/Mac/i.test(navigator.platform)) document.getElementById('kbd-hint').textContent = '⌘K';
                 document.addEventListener('keydown', function (e) {
