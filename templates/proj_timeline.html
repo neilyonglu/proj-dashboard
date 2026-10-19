@@ -318,7 +318,7 @@
                                 style="left: {{ seg.left }}%; width: {{ seg.width }}%; min-width: 40px;"
                                 data-personnel="{{ seg.personnel }}"
                                 data-date="{{ seg.date }}"
-                                data-days="{{ seg.work_days }}"
+                                data-total-hours="{{ seg.total_hours }}"
                                 data-day-hours="{{ seg.day_hours if seg.day_hours is not none else '' }}"
                                 data-ot-hours="{{ seg.overtime_hours if seg.overtime_hours is not none else '' }}"
                                 data-night-hours="{{ seg.night_hours if seg.night_hours is not none else '' }}"
@@ -1364,7 +1364,7 @@
                     if (el.dataset.otHours !== '') hoursParts.push(`加班 <b>${el.dataset.otHours}</b>`);
                     if (el.dataset.nightHours !== '') hoursParts.push(`夜班 <b>${el.dataset.nightHours}</b>`);
                     const hoursRow = hoursParts.length
-                        ? `<div class="tt-row">時數：${hoursParts.join(' / ')}</div>` : '';
+                        ? `<div class="tt-row">時數：${hoursParts.join(' / ')}（合計 <b>${el.dataset.totalHours}</b>）</div>` : '';
                     const descRow = el.dataset.desc
                         ? `<div class="tt-row" style="margin-top:4px;">${el.dataset.desc}</div>` : '';
                     const resignedRow = el.dataset.resigned
@@ -1373,7 +1373,7 @@
                         <div class="tt-title">${el.dataset.personnel || ''}</div>
                         ${resignedRow}
                         <div class="tt-row">專案：<b>${el.dataset.proj || ''}</b></div>
-                        <div class="tt-row">日期：<b>${el.dataset.date || '-'}</b>　工作 <b>${el.dataset.days || '-'}</b> 天</div>
+                        <div class="tt-row">日期：<b>${el.dataset.date || '-'}</b></div>
                         ${hoursRow}
                         ${descRow}`;
                 }

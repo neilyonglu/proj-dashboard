@@ -21,6 +21,9 @@
         {% endfor %}
     </nav>
     <div class="flex shrink-0 items-center gap-2">
+        {% set bk = last_backup() if last_backup is defined else None %}
+        <span id="backup-chip" class="hidden select-none items-center gap-1 whitespace-nowrap rounded-md border border-line px-2 py-0.5 text-xs text-ink-muted md:inline-flex"
+            title="資料庫每日自動備份（最多保留 10 份）"><span class="material-symbols-outlined text-[14px]" aria-hidden="true">history</span>{% if bk %}上次自動備份：{{ bk }}{% else %}尚無備份{% endif %}</span>
         <button type="button" id="theme-toggle" data-theme-toggle class="btn btn-secondary !w-8 !px-0"
             aria-label="切換外觀" title="外觀：深色">
             <span class="material-symbols-outlined text-[18px]" id="theme-toggle-icon" aria-hidden="true">dark_mode</span>

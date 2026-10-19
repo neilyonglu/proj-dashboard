@@ -1,6 +1,6 @@
 # ARCHITECTURE — proj-dashboard (reference)
 
-Extracted from the old CLAUDE.md on 2026-07-06; updated for v2.0.0 on 2026-10-17. This is a convenience map — the code
+Extracted from the old CLAUDE.md on 2026-07-06; updated for v2.1.0 on 2026-10-19. This is a convenience map — the code
 is the source of truth. If this file disagrees with the code, fix this file
 (see global `40-maintenance.md`).
 
@@ -46,15 +46,22 @@ docs/MAINTAINERS.md development, deployment and server migration instructions
 | Model | Purpose |
 |---|---|
 | `Representative` | sales representative (nullable resigned_date) |
-| `Personnel` | employee (avatar path, display name, nullable resigned_date) |
+| `Personnel` | employee (avatar path, display name, nullable resigned_date). No upload -> DiceBear avatar (`avatar_url()` in `core/helpers.py`, template global `avatar_src`) |
 | `Category` | project category |
 | `Project` | project (dates, status, equipment, description) |
-| `Task` | work-hours record, FK to Project; person, work days, day/overtime/night hours |
+| `Task` | work-hours record, FK to Project; person, day/overtime/night hours (`total_hours` property) |
 
 - Deleting a `Project` cascades to its `Task`s.
-- `Task.day_hours` / `overtime_hours` / `night_hours` are optional and coexist with
-  `work_days`. Old DBs get missing columns via `ensure_task_columns()` (ALTER TABLE
-  at startup, defined in `core/helpers.py`).
+- Work time is recorded in hours only: `Task.day_hours` / `overtime_hours` / `night_hours`
+  (NULL counts as 0; forms require at least one > 0, checked by `hours_valid()`). The old
+  `work_days` column no longer exists. Old DBs get missing columns via `ensure_task_columns()`
+  (ALTER TABLE at startup, defined in `core/helpers.py`).
+- `migrate_work_days_to_hours()` (same file; runs at startup and after a DB restore) converts
+  legacy rows: if all three hour fields are NULL, `day_hours = work_days * 8` (1 day = 8h);
+  then drops `work_days` (`ALTER TABLE ... DROP COLUMN`, table rebuild on SQLite < 3.35). It
+  backs up the DB first (`pre_drop_work_days`) and is a no-op once the column is gone.
+- CSV/Excel exports have no days column. Task imports still accept an old 工作天數 column:
+  a row with no hour values becomes `day_hours = days * 8`, otherwise the days are ignored.
 - First startup seeds 3 representatives, 5 categories, 6 personnel (end of `app.py`).
 
 ## Routes
@@ -68,7 +75,7 @@ Public (`core/routes/main.py`, `projects.py`, `tasks.py`):
 | `GET/POST /add-task`, `/edit-task/<id>`; `POST /delete-task/<id>` | task CRUD |
 | `GET /timeline` | Gantt chart (month/quarter/year zoom) |
 | `GET /project/<id>` | project detail page |
-| `GET /employee-case` | per-employee dashboard |
+| `GET /employee-case` | per-employee dashboard; `?view=overview[&month=YYYY-MM]` = month calendar of every employee's records (grid and dots rendered server-side by `build_overview()` in `core/routes/main.py`, day popover is a `<dialog>` fed by inline JSON). Task table shows 20 rows at a time (client-side 「載入更多」). |
 | `GET /overtime-stats` | overtime statistics |
 
 Admin, session-gated (`admin.py`, `manage.py`):

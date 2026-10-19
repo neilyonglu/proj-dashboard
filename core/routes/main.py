@@ -1,9 +1,94 @@
 from datetime import date, timedelta
+from zlib import crc32
 
-from flask import render_template, request, session
+from flask import render_template, request, session, url_for
 from sqlalchemy import func
 from ..extensions import db
+from ..helpers import avatar_url
 from ..models import Project, Task, Personnel
+
+# Overview calendar: one stable colour per employee (rank by Personnel.id, so it is the
+# same in every month), picked from this palette; no database column needed.
+OVERVIEW_PALETTE = [
+    '#6872e5', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16', '#8b5cf6',
+    '#f97316', '#14b8a6', '#3b82f6', '#eab308', '#d946ef', '#22c55e', '#0ea5e9', '#f43f5e',
+]
+
+MAX_DOTS = 10  # dots per day cell before collapsing into "+N"
+
+
+def _parse_month(raw, today):
+    try:
+        y, m = (raw or '').split('-')
+        y, m = int(y), int(m)
+        date(y, m, 1)
+        return y, m
+    except (ValueError, TypeError):
+        return today.year, today.month
+
+
+def build_overview(month_raw):
+    """Data for the month-calendar overview of every employee's task records."""
+    today = date.today()
+    y, m = _parse_month(month_raw, today)
+    start = date(y, m, 1)
+    end = date(y + 1, 1, 1) if m == 12 else date(y, m + 1, 1)
+    tasks = Task.query.filter(Task.date >= start, Task.date < end).order_by(Task.date, Task.id).all()
+    people = Personnel.query.order_by(Personnel.id).all()
+    by_name = {p.name: p for p in people}
+    color_of = {p.name: OVERVIEW_PALETTE[i % len(OVERVIEW_PALETTE)] for i, p in enumerate(people)}
+
+    employees, seen, days = [], set(), {}
+    for t in tasks:
+        if t.personnel not in seen:
+            seen.add(t.personnel)
+            p = by_name.get(t.personnel)
+            employees.append({
+                'name': t.personnel,
+                'display': (p.display_name or p.name) if p else t.personnel,
+                'color': color_of.get(t.personnel) or OVERVIEW_PALETTE[crc32(t.personnel.encode('utf-8')) % len(OVERVIEW_PALETTE)],
+                'avatar': avatar_url(t.personnel, p.avatar_filename if p else None),
+                'resigned': bool(p and p.resigned_date),
+            })
+        days.setdefault(t.date.isoformat(), []).append({
+            'p': t.personnel,
+            'project': t.project.name if t.project else 'N/A',
+            'url': url_for('project_detail', id=t.project_id) if t.project else '',
+            'desc': t.description or '',
+            'day': t.day_hours or 0, 'ot': t.overtime_hours or 0, 'night': t.night_hours or 0,
+            'total': t.total_hours,
+        })
+    employees.sort(key=lambda e: e['display'])
+
+    # 7-column grid, Sunday first; leading/trailing days of adjacent months are dimmed
+    # and carry no dots (only the visible month is queried).
+    first_wd = (start.weekday() + 1) % 7
+    grid_start = start - timedelta(days=first_wd)
+    rows = -(-(first_wd + (end - start).days) // 7)
+    emp_by_name = {e['name']: e for e in employees}
+    cells = []
+    for i in range(rows * 7):
+        d = grid_start + timedelta(days=i)
+        in_month = (d.year, d.month) == (y, m)
+        recs = days.get(d.isoformat(), []) if in_month else []
+        names = sorted({r['p'] for r in recs}, key=lambda n: emp_by_name[n]['display'])
+        cells.append({
+            'iso': d.isoformat(), 'day': d.day, 'in_month': in_month,
+            'today': d == today, 'weekend': i % 7 in (0, 6), 'count': len(recs),
+            'dots': [emp_by_name[n] for n in names[:MAX_DOTS]],
+            'more': max(0, len(names) - MAX_DOTS),
+        })
+
+    years = [d for (d,) in db.session.query(func.strftime('%Y', Task.date)).distinct()]
+    year_nums = [int(v) for v in years if v] + [today.year, y]
+    prev_y, prev_m = (y - 1, 12) if m == 1 else (y, m - 1)
+    next_y, next_m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return {
+        'year': y, 'month': m, 'employees': employees, 'days': days, 'cells': cells,
+        'years': list(range(min(year_nums), max(year_nums) + 2)),
+        'prev': f'{prev_y:04d}-{prev_m:02d}', 'next': f'{next_y:04d}-{next_m:02d}',
+        'is_current': (y, m) == (today.year, today.month),
+    }
 
 
 def register(app):
@@ -16,28 +101,35 @@ def register(app):
         start_of_month = date(today.year, today.month, 1)
         end_of_month = date(today.year + 1, 1, 1) if today.month == 12 else date(today.year, today.month + 1, 1)
         tasks_this_month = Task.query.filter(Task.date >= start_of_month, Task.date < end_of_month).all()
-        monthly_work_days = sum(t.work_days for t in tasks_this_month)
+        monthly_hours = sum(t.total_hours for t in tasks_this_month)
         start_of_prev = date(today.year - 1, 12, 1) if today.month == 1 else date(today.year, today.month - 1, 1)
-        prev_work_days = (db.session.query(func.coalesce(func.sum(Task.work_days), 0))
-                          .filter(Task.date >= start_of_prev, Task.date < start_of_month).scalar())
+        prev_hours = (db.session.query(func.coalesce(func.sum(
+                          func.coalesce(Task.day_hours, 0) + func.coalesce(Task.overtime_hours, 0)
+                          + func.coalesce(Task.night_hours, 0)), 0))
+                      .filter(Task.date >= start_of_prev, Task.date < start_of_month).scalar())
         # overdue = project not closed (已結案) whose end_date is set and already past
         overdue_projects = Project.query.filter(Project.status != '已結案', Project.end_date < today).count()
         reported_count = len({t.personnel for t in tasks_this_month})
         return render_template('index.html',
-                               work_days_diff=monthly_work_days - prev_work_days,
+                               hours_diff=monthly_hours - prev_hours,
                                overdue_projects=overdue_projects,
                                reported_count=reported_count,
                                active_projects=active_projects_count,
                                total_personnel=total_personnel,
-                               monthly_work_days=monthly_work_days)
+                               monthly_hours=monthly_hours)
 
     @app.route('/employee-case')
     def employee_case():
+        if request.args.get('view') == 'overview':
+            personnel_list = [(p.name, p.display_name or p.name) for p in
+                              Personnel.query.filter(Personnel.resigned_date.is_(None)).order_by(Personnel.name)]
+            return render_template('employee_case.html', view='overview', personnel_list=personnel_list,
+                                   selected=None, overview=build_overview(request.args.get('month')))
         personnel_all = Personnel.query.filter(Personnel.resigned_date.is_(None)).order_by(Personnel.name).all()
         if not personnel_all:
-            return render_template('employee_case.html',
+            return render_template('employee_case.html', view='person',
                                    personnel_list=[], selected=None, display_name='',
-                                   avatar_filename=None, tasks=[], total_days=0,
+                                   avatar_filename=None, tasks=[], total_hours=0,
                                    project_count=0, filter_project=None)
         personnel_list = [(p.name, p.display_name or p.name) for p in personnel_all]
         selected = request.args.get('person', personnel_list[0][0])
@@ -55,12 +147,13 @@ def register(app):
             tasks = Task.query.filter_by(personnel=selected).order_by(Task.date.desc()).all()
 
         return render_template('employee_case.html',
+                               view='person',
                                personnel_list=personnel_list,
                                selected=selected,
                                display_name=selected_p.display_name or selected_p.name,
                                avatar_filename=selected_p.avatar_filename,
                                tasks=tasks,
-                               total_days=sum(t.work_days for t in tasks),
+                               total_hours=sum(t.total_hours for t in tasks),
                                project_count=len(set(t.project_id for t in tasks)),
                                filter_project=filter_project,
                                is_admin=bool(session.get('db_admin_auth')))
@@ -224,14 +317,14 @@ def register(app):
             for t in p.tasks:
                 if not t.date:
                     continue
-                task_days = max(1, int(t.work_days)) if t.work_days else 1
+                task_days = max(1, int(t.total_hours // 8))
                 task_end = t.date + timedelta(days=task_days)
                 t_offset = (t.date - timeline_start).days
                 t_left = max(0, (t_offset / total_days) * 100)
                 t_width = min(100 - t_left, (max(1, (task_end - t.date).days) / total_days) * 100)
                 segments.append({
                     'left': t_left, 'width': t_width,
-                    'personnel': t.personnel, 'work_days': t.work_days,
+                    'personnel': t.personnel, 'total_hours': t.total_hours,
                     'date': t.date.strftime('%Y/%m/%d') if t.date else '',
                     'day_hours': t.day_hours, 'overtime_hours': t.overtime_hours,
                     'night_hours': t.night_hours, 'desc': t.description

@@ -38,10 +38,13 @@ class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     personnel = db.Column(db.String(50), nullable=False)
     date = db.Column(db.Date, nullable=False)
-    work_days = db.Column(db.Float, nullable=False)
     day_hours = db.Column(db.Float, nullable=True)
     overtime_hours = db.Column(db.Float, nullable=True)
     night_hours = db.Column(db.Float, nullable=True)
     description = db.Column(db.Text, nullable=False)
     notes = db.Column(db.Text, nullable=True)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+
+    @property
+    def total_hours(self):
+        return (self.day_hours or 0) + (self.overtime_hours or 0) + (self.night_hours or 0)

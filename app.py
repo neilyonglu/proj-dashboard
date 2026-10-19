@@ -2,7 +2,7 @@ import os
 
 from flask import Flask
 
-APP_VERSION = '2.0.0'
+APP_VERSION = '2.1.0'
 
 application_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -42,6 +42,11 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_file_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = upload_path
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
+# Cookie hardening. SameSite=Lax blocks cross-site form POSTs (basic CSRF defense).
+# Set COOKIE_SECURE=1 once the site is served over HTTPS.
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('COOKIE_SECURE', '').lower() in ('1', 'true', 'yes')
 app.config['DB_FILE_PATH'] = db_file_path
 app.config['DB_INSTANCE_DIR'] = instance_dir
 app.config['DB_ADMIN_PASSWORD'] = DB_ADMIN_PASSWORD
@@ -63,7 +68,7 @@ register_routes(app)
 
 def bootstrap():
     """Create/migrate the DB and seed defaults. Safe to call more than once."""
-    from core.helpers import (backup_database, ensure_task_columns,
+    from core.helpers import (backup_database, ensure_task_columns, migrate_work_days_to_hours,
                               ensure_people_columns, start_daily_backup_scheduler)
     from core.models import Representative, Category, Personnel, Task
 
@@ -71,6 +76,7 @@ def bootstrap():
         backup_database(reason='startup', once_per_day=True)
         db.create_all()
         ensure_task_columns()
+        migrate_work_days_to_hours()
         ensure_people_columns()
 
         if not Representative.query.first():

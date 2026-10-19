@@ -72,9 +72,9 @@
                         <span class="material-symbols-outlined text-2xl">schedule</span>
                     </div>
                     <div>
-                        <div class="text-xs text-ink-muted mb-0.5">總工作天數</div>
-                        <div class="text-2xl font-bold text-ink">{{ '%g'|format(total_days) }}</div>
-                        <div class="text-xs text-ink-muted">天（人天累計）</div>
+                        <div class="text-xs text-ink-muted mb-0.5">總時數</div>
+                        <div class="text-2xl font-bold text-ink">{{ '%g'|format(total_hours|round(1)) }}</div>
+                        <div class="text-xs text-ink-muted">小時（日班＋加班＋夜班）</div>
                     </div>
                 </div>
                 <div class="panel p-5 flex items-center gap-4">
@@ -151,19 +151,19 @@
                     </div>
                 </div>
 
-                <!-- Donut chart — work days per person -->
+                <!-- Donut chart — hours per person -->
                 <div class="panel overflow-hidden">
                     <div class="px-5 py-4 border-b border-line flex items-center gap-2 bg-surface-muted">
                         <span class="material-symbols-outlined text-[18px] text-primary">pie_chart</span>
-                        <h3 class="text-sm font-bold text-ink">人員工時分配（工作天數）</h3>
+                        <h3 class="text-sm font-bold text-ink">人員工時分配（總時數）</h3>
                     </div>
                     {% if person_stats %}
                     <div class="flex items-center gap-6 p-5 flex-wrap">
                         <div class="relative" style="width:160px;height:160px;min-width:160px;">
                             <canvas id="donut-chart"></canvas>
                             <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span class="text-xs text-ink-muted">總計天數</span>
-                                <span class="text-xl font-semibold text-ink num">{{ '%g'|format(total_days) }}</span>
+                                <span class="text-xs text-ink-muted">總計時數</span>
+                                <span class="text-xl font-semibold text-ink num">{{ '%g'|format(total_hours|round(1)) }}</span>
                             </div>
                         </div>
                         <div class="flex flex-col gap-2 text-sm min-w-0 flex-1 max-h-[160px] overflow-y-auto">
@@ -173,7 +173,7 @@
                                       style="background:{{ PIE_COLORS[loop.index0 % PIE_COLORS|length] }}"></span>
                                 <a href="{{ url_for('employee_case', person=p.name, project_id=proj.id) }}"
                                    class="text-ink hover:text-primary hover:underline truncate text-sm">{{ p.name }}</a>
-                                <span class="text-ink-muted ml-auto shrink-0 text-sm num">{{ '%g'|format(p.days) }} 天{% if total_days %} · {{ '%.0f'|format(p.days / total_days * 100) }}%{% endif %}</span>
+                                <span class="text-ink-muted ml-auto shrink-0 text-sm num">{{ '%g'|format(p.hours|round(1)) }} 小時{% if total_hours %} · {{ '%.0f'|format(p.hours / total_hours * 100) }}%{% endif %}</span>
                             </div>
                             {% endfor %}
                         </div>
@@ -214,7 +214,7 @@
                             <tr class="bg-surface-muted border-b border-line text-ink-muted text-sm font-medium">
                                 <th class="px-5 py-3 whitespace-nowrap">日期</th>
                                 <th class="px-5 py-3 whitespace-nowrap">人員</th>
-                                <th class="px-5 py-3 whitespace-nowrap text-right">工作天</th>
+                                <th class="px-5 py-3 whitespace-nowrap text-right">總時數</th>
                                 <th class="px-5 py-3 whitespace-nowrap text-center">時數（日/加/夜）</th>
                                 <th class="px-5 py-3 min-w-[240px]">工作內容</th>
                                 <th class="px-5 py-3 min-w-[140px]">備註</th>
@@ -234,7 +234,7 @@
                                 </td>
                                 <td class="px-5 py-3 text-right whitespace-nowrap">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary num">
-                                        {{ task.work_days }} 天
+                                        {{ '%g'|format(task.total_hours|round(1)) }} 小時
                                     </span>
                                 </td>
                                 <td class="px-5 py-3 text-center whitespace-nowrap text-ink-muted text-sm">
@@ -293,12 +293,12 @@
         document.getElementById('log-prev').onclick = function () { page--; render(); };
         document.getElementById('log-next').onclick = function () { page++; render(); };
         document.getElementById('log-csv').onclick = function () {
-            const data = [['日期', '人員', '工作天', '日班時數', '加班時數', '夜班時數', '工作內容', '備註']];
+            const data = [['日期', '人員', '總時數', '日班時數', '加班時數', '夜班時數', '工作內容', '備註']];
             shown.forEach(function (r) {
                 const td = r.querySelectorAll('td');
                 const h = td[3].querySelectorAll('span');
                 data.push([td[0], td[1], td[2], h[0], h[1], h[2], td[4], td[5]]
-                    .map((c, i) => c.textContent.replace(i === 2 ? /\s*天/ : '', '').trim()));
+                    .map((c, i) => c.textContent.replace(i === 2 ? /\s*小時/ : '', '').trim()));
             });
             downloadCsv({{ (proj.name ~ '_工作紀錄.csv') | tojson }}, data);
         };
@@ -316,7 +316,7 @@
             data: {
                 labels: {{ person_names | tojson }},
                 datasets: [{
-                    data: {{ person_days | tojson }},
+                    data: {{ person_hours | tojson }},
                     backgroundColor: PIE_COLORS.slice(0, {{ person_stats|length }}),
                     borderWidth: 2,
                     borderColor: document.documentElement.classList.contains('dark') ? '#16171a' : '#fff',
@@ -333,7 +333,7 @@
                             label: function(ctx) {
                                 const total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
                                 const pct = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
-                                return ctx.label + ': ' + ctx.parsed + ' 天 (' + pct + '%)';
+                                return ctx.label + ': ' + ctx.parsed + ' 小時 (' + pct + '%)';
                             }
                         }
                     }

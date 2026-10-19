@@ -3,8 +3,15 @@ from datetime import datetime
 from flask import render_template, request, redirect, url_for, flash, session
 from ..extensions import db
 from ..models import Task, Project, Personnel
-from ..helpers import parse_shift_hours
+from ..helpers import parse_shift_hours, hours_valid
 from ..activity_log import log_action
+
+
+def _safe_redirect_target(target):
+    """Only allow same-site relative paths; absolute URLs or //host fall back to manage_db."""
+    if target and target.startswith('/') and not target.startswith('//') and '\\' not in target:
+        return target
+    return url_for('manage_db')
 
 
 def register(app):
@@ -15,7 +22,6 @@ def register(app):
             personnel = request.form.get('personnel')
             project_id = request.form.get('project_id')
             date_str = request.form.get('date')
-            work_days_str = request.form.get('work_days')
             description = request.form.get('description')
             notes = request.form.get('notes')
 
@@ -25,19 +31,16 @@ def register(app):
                 flash('日期格式錯誤', 'error')
                 return redirect(url_for('add_task'))
 
-            if not personnel or not project_id or not task_date or not description or not work_days_str:
+            if not personnel or not project_id or not task_date or not description:
                 flash('請填寫所有必填欄位', 'error')
                 return redirect(url_for('add_task'))
 
-            try:
-                work_days = float(work_days_str)
-            except (ValueError, TypeError):
-                flash('工作天數格式錯誤', 'error')
-                return redirect(url_for('add_task'))
-
             day_hours, overtime_hours, night_hours = parse_shift_hours(request.form)
+            if not hours_valid(day_hours, overtime_hours, night_hours):
+                flash('請至少填寫一項大於 0 的時數（日班／加班／夜班）', 'error')
+                return redirect(url_for('add_task'))
             new_task = Task(personnel=personnel, project_id=int(project_id), date=task_date,
-                            work_days=work_days, day_hours=day_hours, overtime_hours=overtime_hours,
+                            day_hours=day_hours, overtime_hours=overtime_hours,
                             night_hours=night_hours, description=description, notes=notes)
             try:
                 db.session.add(new_task)
@@ -45,7 +48,7 @@ def register(app):
                 proj = Project.query.get(int(project_id))
                 proj_name = proj.name if proj else project_id
                 log_action(request.remote_addr, '新增工作紀錄',
-                           f'personnel={personnel}, project={proj_name}, date={date_str}, days={work_days}')
+                           f'personnel={personnel}, project={proj_name}, date={date_str}, hours={day_hours or 0}/{overtime_hours or 0}/{night_hours or 0}')
                 flash('✅ 工作紀錄已新增！', 'success')
                 return redirect(url_for('employee_case', person=personnel))
             except Exception as e:
@@ -64,16 +67,15 @@ def register(app):
     @app.route('/edit-task/<int:id>', methods=['GET', 'POST'])
     def edit_task(id):
         task = Task.query.get_or_404(id)
-        redirect_to = request.args.get('redirect_to', url_for('manage_db'))
+        redirect_to = _safe_redirect_target(request.args.get('redirect_to'))
 
         if request.method == 'POST':
             task.personnel = request.form.get('personnel')
             task.project_id = int(request.form.get('project_id'))
             task.description = request.form.get('description')
             task.notes = request.form.get('notes')
-            redirect_to = request.form.get('redirect_to', url_for('manage_db'))
+            redirect_to = _safe_redirect_target(request.form.get('redirect_to'))
             date_str = request.form.get('date')
-            work_days_str = request.form.get('work_days')
 
             try:
                 task.date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else None
@@ -81,13 +83,12 @@ def register(app):
                 flash('日期格式錯誤', 'error')
                 return redirect(url_for('edit_task', id=id, redirect_to=redirect_to))
 
-            try:
-                task.work_days = float(work_days_str)
-            except (ValueError, TypeError):
-                flash('工作天數格式錯誤', 'error')
+            day_hours, overtime_hours, night_hours = parse_shift_hours(request.form)
+            if not hours_valid(day_hours, overtime_hours, night_hours):
+                db.session.rollback()
+                flash('請至少填寫一項大於 0 的時數（日班／加班／夜班）', 'error')
                 return redirect(url_for('edit_task', id=id, redirect_to=redirect_to))
-
-            task.day_hours, task.overtime_hours, task.night_hours = parse_shift_hours(request.form)
+            task.day_hours, task.overtime_hours, task.night_hours = day_hours, overtime_hours, night_hours
             try:
                 db.session.commit()
                 log_action(request.remote_addr, '編輯工作紀錄',
@@ -113,10 +114,10 @@ def register(app):
         if not session.get('db_admin_auth'):
             log_action(request.remote_addr, '刪除工作紀錄（未授權）', f'task_id={id}')
             flash('僅管理者可刪除工作紀錄', 'error')
-            redirect_to = request.form.get('redirect_to', url_for('manage_db'))
+            redirect_to = _safe_redirect_target(request.form.get('redirect_to'))
             return redirect(redirect_to)
         task = Task.query.get_or_404(id)
-        redirect_to = request.form.get('redirect_to', url_for('manage_db'))
+        redirect_to = _safe_redirect_target(request.form.get('redirect_to'))
         try:
             detail = f'task_id={id}, personnel={task.personnel}, date={task.date}'
             db.session.delete(task)

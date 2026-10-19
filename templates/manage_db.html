@@ -322,7 +322,6 @@
                                 <th class="px-4 py-3 border-r border-line">所屬專案</th>
                                 <th class="px-4 py-3 border-r border-line">人員</th>
                                 <th class="px-4 py-3 border-r border-line">日期</th>
-                                <th class="px-4 py-3 border-r border-line">工作天數</th>
                                 <th class="px-4 py-3 border-r border-line text-center">日班</th>
                                 <th class="px-4 py-3 border-r border-line text-center">加班</th>
                                 <th class="px-4 py-3 border-r border-line text-center">夜班</th>
@@ -339,7 +338,6 @@
                                     task.project else 'N/A' }}</td>
                                 <td class="px-4 py-3 search-field">{{ task.personnel }}</td>
                                 <td class="px-4 py-3 text-ink-muted">{{ task.date.strftime('%Y/%m/%d') }}</td>
-                                <td class="px-4 py-3">{{ task.work_days }}</td>
                                 <td class="px-4 py-3 text-center text-ink-muted">{{ task.day_hours if task.day_hours is not none else '-' }}</td>
                                 <td class="px-4 py-3 text-center text-ink-muted">{{ task.overtime_hours if task.overtime_hours is not none else '-' }}</td>
                                 <td class="px-4 py-3 text-center text-ink-muted">{{ task.night_hours if task.night_hours is not none else '-' }}</td>
@@ -474,7 +472,7 @@
                                         <img src="{{ url_for('static', filename='avatars/' + p.avatar_filename) }}"
                                             class="w-full h-full object-cover" alt="avatar">
                                         {% else %}
-                                        <span class="material-symbols-outlined text-ink-muted text-sm">person</span>
+                                        <img src="{{ avatar_src(p.name) }}" class="w-full h-full object-cover" alt="avatar" loading="lazy">
                                         {% endif %}
                                     </div>
                                 </td>

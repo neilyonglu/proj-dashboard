@@ -13,10 +13,10 @@ def register(app):
     def project_detail(id):
         proj = Project.query.get_or_404(id)
 
-        person_map = defaultdict(lambda: {'days': 0.0, 'day_h': 0.0, 'ot_h': 0.0, 'night_h': 0.0, 'count': 0})
+        person_map = defaultdict(lambda: {'hours': 0.0, 'day_h': 0.0, 'ot_h': 0.0, 'night_h': 0.0, 'count': 0})
         for t in proj.tasks:
             ps = person_map[t.personnel]
-            ps['days'] += t.work_days or 0
+            ps['hours'] += t.total_hours
             ps['day_h'] += t.day_hours or 0
             ps['ot_h'] += t.overtime_hours or 0
             ps['night_h'] += t.night_hours or 0
@@ -24,10 +24,10 @@ def register(app):
 
         person_stats = sorted(
             [{'name': k, **v} for k, v in person_map.items()],
-            key=lambda x: x['days'], reverse=True
+            key=lambda x: x['hours'], reverse=True
         )
 
-        total_days = sum(p['days'] for p in person_stats)
+        total_hours = sum(p['hours'] for p in person_stats)
         has_hours = any(p['day_h'] > 0 or p['ot_h'] > 0 or p['night_h'] > 0 for p in person_stats)
         today = date.today()
         end = proj.end_date if proj.end_date else today
@@ -38,11 +38,11 @@ def register(app):
             proj=proj,
             person_stats=person_stats,
             person_names=[p['name'] for p in person_stats],
-            person_days=[p['days'] for p in person_stats],
+            person_hours=[p['hours'] for p in person_stats],
             person_day_h=[p['day_h'] for p in person_stats],
             person_ot_h=[p['ot_h'] for p in person_stats],
             person_night_h=[p['night_h'] for p in person_stats],
-            total_days=total_days,
+            total_hours=total_hours,
             has_hours=has_hours,
             duration_days=duration_days,
             tasks_sorted=tasks_sorted)

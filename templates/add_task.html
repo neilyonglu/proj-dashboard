@@ -60,7 +60,7 @@
                         </label>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 gap-6">
                         <div class="w-full">
                             <label class="flex flex-col">
                                 <span class="text-ink text-sm font-semibold mb-2">工作日期 <span
@@ -72,25 +72,13 @@
                             </label>
                         </div>
 
-                        <div class="w-full">
-                            <label class="flex flex-col">
-                                <span class="text-ink text-sm font-semibold mb-2">工作天數 <span
-                                        class="text-red-500">*</span></span>
-                                <div class="relative flex w-full items-stretch">
-                                    <div class="relative w-full"><input type="number" name="work_days" step="0.5" min="0.5" max="30" required
-                                        placeholder="例如：1 或 0.5"
-                                        class="input" /><span class="absolute right-9 top-1/2 -translate-y-1/2 text-sm text-ink-muted pointer-events-none">天</span></div>
-                                </div>
-                                <span class="text-xs text-ink-muted mt-1">支援 0.5 天為單位</span>
-                            </label>
-                        </div>
                     </div>
 
                     <!-- Shift hours (optional) -->
                     <div class="w-full">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="text-ink text-sm font-semibold">時數明細</span>
-                            <span class="text-ink-muted font-normal text-xs">(選填，可與工作天數並存)</span>
+                            <span class="text-ink text-sm font-semibold">工作時數 <span class="text-red-500">*</span></span>
+                            <span class="text-ink-muted font-normal text-xs">(至少填一項，1 天 = 8 小時)</span>
                             <span class="ml-auto text-sm text-ink-muted">合計 <span data-hours-total class="num font-semibold text-ink">0</span> hr</span>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">

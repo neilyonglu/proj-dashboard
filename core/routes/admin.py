@@ -1,7 +1,9 @@
 import csv
+import hmac
 import io
 import os
 import shutil
+import time
 from datetime import datetime
 
 from flask import render_template, request, redirect, url_for, flash, session, send_file, Response
@@ -9,7 +11,7 @@ from openpyxl import Workbook, load_workbook
 from sqlalchemy.orm import selectinload
 from ..extensions import db
 from ..models import Project, Task, Personnel, Representative, Category
-from ..helpers import (backup_database, ensure_task_columns, ensure_people_columns,
+from ..helpers import (backup_database, ensure_task_columns, ensure_people_columns, migrate_work_days_to_hours,
                        parse_resigned_date, BACKUP_KEEP)
 from ..activity_log import log_action
 
@@ -21,6 +23,32 @@ def _require_auth():
     return None
 
 
+# Login brute-force guard: per-IP failure timestamps, kept in memory (single process).
+LOGIN_MAX_FAILURES = 5
+LOGIN_WINDOW_SECONDS = 15 * 60
+_login_failures = {}
+
+
+def _recent_failures(ip):
+    cutoff = time.time() - LOGIN_WINDOW_SECONDS
+    recent = [t for t in _login_failures.get(ip, []) if t > cutoff]
+    _login_failures[ip] = recent
+    return recent
+
+
+def _legacy_days_to_hours(days_raw, day_hours, overtime_hours, night_hours):
+    """Old exports carry a 工作天數 column. If a row has no hour values, convert days * 8 into
+    day_hours; otherwise ignore the days. Returns the (possibly converted) day_hours."""
+    if day_hours is None and overtime_hours is None and night_hours is None:
+        try:
+            days = float((days_raw or '').strip())
+        except ValueError:
+            return day_hours
+        if days > 0:
+            return days * 8
+    return day_hours
+
+
 def register(app):
     DB_ADMIN_PASSWORD = app.config['DB_ADMIN_PASSWORD']
 
@@ -29,11 +57,18 @@ def register(app):
     @app.route('/manage-db-login', methods=['GET', 'POST'])
     def manage_db_login():
         if request.method == 'POST':
-            if request.form.get('password', '') == DB_ADMIN_PASSWORD:
+            ip = request.remote_addr
+            if len(_recent_failures(ip)) >= LOGIN_MAX_FAILURES:
+                log_action(ip, '管理者登入遭鎖定（失敗次數過多）')
+                flash('登入失敗次數過多，請 15 分鐘後再試', 'error')
+                return redirect(url_for('manage_db_login'))
+            if hmac.compare_digest(request.form.get('password', '').encode(), DB_ADMIN_PASSWORD.encode()):
+                _login_failures.pop(ip, None)
                 session['db_admin_auth'] = True
                 log_action(request.remote_addr, '管理者登入成功')
                 return redirect(url_for('manage_db'))
-            log_action(request.remote_addr, '管理者登入失敗（密碼錯誤）')
+            _login_failures.setdefault(ip, []).append(time.time())
+            log_action(ip, '管理者登入失敗（密碼錯誤）')
             flash('密碼錯誤，請重新輸入', 'error')
             return redirect(url_for('manage_db_login'))
         return render_template('manage_db_login.html')
@@ -171,9 +206,9 @@ def register(app):
                  p.end_date.strftime('%Y/%m/%d') if p.end_date else '',
                  ', '.join(set(t.personnel for t in p.tasks)), p.notes] for p in projects])
 
-        _sheet('工作紀錄', ['所屬專案', '人員', '日期', '工作天數', '日班時數', '加班時數', '夜班時數', '工作描述', '備註'],
+        _sheet('工作紀錄', ['所屬專案', '人員', '日期', '日班時數', '加班時數', '夜班時數', '工作描述', '備註'],
                [[t.project.name if t.project else '', t.personnel,
-                 t.date.strftime('%Y/%m/%d') if t.date else '', t.work_days,
+                 t.date.strftime('%Y/%m/%d') if t.date else '',
                  t.day_hours if t.day_hours is not None else '',
                  t.overtime_hours if t.overtime_hours is not None else '',
                  t.night_hours if t.night_hours is not None else '',
@@ -367,7 +402,7 @@ def register(app):
             # 5. Tasks (must run after projects so project names resolve)
             n_add = n_skip = 0
             seen = set(
-                (t.project_id, t.personnel, t.date, t.work_days, t.day_hours,
+                (t.project_id, t.personnel, t.date, t.day_hours,
                  t.overtime_hours, t.night_hours, t.description, t.notes)
                 for t in Task.query.all())
             for i, row in enumerate(_sheet_rows('工作紀錄'), start=2):
@@ -383,24 +418,23 @@ def register(app):
                     errors.append(f'工作紀錄表第 {i} 行找不到專案「{proj_name}」，已略過')
                     continue
                 date_str = row.get('日期', '').strip()
-                work_days_s = row.get('工作天數', '').strip()
                 try:
                     task_date = datetime.strptime(date_str, '%Y/%m/%d').date() if date_str else None
-                    work_days = float(work_days_s) if work_days_s else 0.0
                 except ValueError:
-                    errors.append(f'工作紀錄表第 {i} 行日期或工作天數格式錯誤，已略過')
+                    errors.append(f'工作紀錄表第 {i} 行日期格式錯誤，已略過')
                     continue
                 day_hours = _opt_float(row.get('日班時數', ''))
                 overtime_hours = _opt_float(row.get('加班時數', ''))
                 night_hours = _opt_float(row.get('夜班時數', ''))
-                sig = (project.id, personnel, task_date, work_days, day_hours,
+                day_hours = _legacy_days_to_hours(row.get('工作天數', ''), day_hours, overtime_hours, night_hours)
+                sig = (project.id, personnel, task_date, day_hours,
                        overtime_hours, night_hours, description, notes)
                 if sig in seen:
                     n_skip += 1
                     continue
                 seen.add(sig)
                 db.session.add(Task(project_id=project.id, personnel=personnel, date=task_date,
-                                    work_days=work_days, day_hours=day_hours,
+                                    day_hours=day_hours,
                                     overtime_hours=overtime_hours, night_hours=night_hours,
                                     description=description, notes=notes))
                 n_add += 1
@@ -529,13 +563,13 @@ def register(app):
             return guard
         tasks = Task.query.order_by(Task.id).all()
         rows = [[t.project.name if t.project else '', t.personnel,
-                 t.date.strftime('%Y/%m/%d') if t.date else '', t.work_days,
+                 t.date.strftime('%Y/%m/%d') if t.date else '',
                  t.day_hours if t.day_hours is not None else '',
                  t.overtime_hours if t.overtime_hours is not None else '',
                  t.night_hours if t.night_hours is not None else '',
                  t.description, t.notes or ''] for t in tasks]
         return _csv_response(rows,
-                             ['所屬專案', '人員', '日期', '工作天數', '日班時數', '加班時數', '夜班時數', '工作描述', '備註'],
+                             ['所屬專案', '人員', '日期', '日班時數', '加班時數', '夜班時數', '工作描述', '備註'],
                              'tasks_export.csv')
 
     @app.route('/api/import-tasks', methods=['POST'])
@@ -570,14 +604,13 @@ def register(app):
             imported = skipped = 0
             error_list = []
             seen = set(
-                (t.project_id, t.personnel, t.date, t.work_days, t.day_hours,
+                (t.project_id, t.personnel, t.date, t.day_hours,
                  t.overtime_hours, t.night_hours, t.description, t.notes)
                 for t in Task.query.all())
             for i, row in enumerate(reader, start=2):
                 proj_name = row.get('所屬專案', '').strip()
                 personnel = row.get('人員', '').strip()
                 date_str = row.get('日期', '').strip()
-                work_days_s = row.get('工作天數', '').strip()
                 description = row.get('工作描述', '').strip()
                 notes = row.get('備註', '').strip() or None
                 if not proj_name or not personnel or not description:
@@ -589,21 +622,21 @@ def register(app):
                     continue
                 try:
                     task_date = datetime.strptime(date_str, '%Y/%m/%d').date() if date_str else None
-                    work_days = float(work_days_s) if work_days_s else 0.0
                 except ValueError:
-                    error_list.append(f'第 {i} 行日期或工作天數格式錯誤，已略過')
+                    error_list.append(f'第 {i} 行日期格式錯誤，已略過')
                     continue
                 day_hours = _opt_hours(row, '日班時數')
                 overtime_hours = _opt_hours(row, '加班時數')
                 night_hours = _opt_hours(row, '夜班時數')
-                sig = (project.id, personnel, task_date, work_days, day_hours,
+                day_hours = _legacy_days_to_hours(row.get('工作天數', ''), day_hours, overtime_hours, night_hours)
+                sig = (project.id, personnel, task_date, day_hours,
                        overtime_hours, night_hours, description, notes)
                 if sig in seen:
                     skipped += 1
                     continue
                 seen.add(sig)
                 db.session.add(Task(project_id=project.id, personnel=personnel, date=task_date,
-                                    work_days=work_days, day_hours=day_hours,
+                                    day_hours=day_hours,
                                     overtime_hours=overtime_hours,
                                     night_hours=night_hours,
                                     description=description, notes=notes))

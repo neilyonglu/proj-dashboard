@@ -86,7 +86,7 @@
                                         <img src="{{ url_for('static', filename='avatars/' + p.avatar_filename) }}"
                                             class="w-full h-full object-cover" alt="avatar" />
                                         {% else %}
-                                        <span class="material-symbols-outlined text-ink-muted text-2xl">person</span>
+                                        <img src="{{ avatar_src(p.name) }}" class="w-full h-full object-cover" alt="avatar" loading="lazy" />
                                         {% endif %}
                                     </div>
                                     <div>
