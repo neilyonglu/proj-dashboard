@@ -199,11 +199,27 @@
             {% endif %}
 
             <!-- Task log -->
+            <style>
+                mark.kw-hit { background: rgb(var(--st-active-bg)); color: rgb(var(--st-active-fg)); font-weight: 700; border-radius: 2px; padding: 0 1px; }
+            </style>
             <div class="panel overflow-hidden">
-                <div class="px-5 py-4 border-b border-line flex items-center gap-2 bg-surface-muted">
+                <div class="px-5 py-4 border-b border-line flex flex-wrap items-center gap-2 bg-surface-muted">
                     <span class="material-symbols-outlined text-[18px] text-primary">receipt_long</span>
                     <h3 class="text-sm font-bold text-ink">工作紀錄（{{ tasks_sorted|length }} 筆）</h3>
-                    <div class="ml-auto flex items-center gap-2">
+                    <div class="ml-auto flex flex-wrap items-center gap-2">
+                        <select id="log-gran" class="input !h-9 !w-auto !py-0 !pr-8" aria-label="期間篩選">
+                            <option value="all">全部期間</option>
+                            <option value="year">年</option>
+                            <option value="month">月</option>
+                            <option value="day">日</option>
+                        </select>
+                        <select id="log-year" class="input !h-9 !w-auto !py-0 !pr-8 hidden" aria-label="年份">
+                            {% for y in tasks_sorted|map(attribute='date')|map(attribute='year')|unique|sort(reverse=true) %}
+                            <option value="{{ y }}">{{ y }} 年</option>
+                            {% endfor %}
+                        </select>
+                        <input id="log-month" type="month" class="input !h-9 !w-auto hidden" aria-label="月份">
+                        <input id="log-day" type="date" class="input !h-9 !w-auto hidden" aria-label="日期">
                         <input id="log-search" type="search" class="input !h-9 w-48" placeholder="搜尋紀錄..." aria-label="搜尋工作紀錄">
                         <button type="button" id="log-csv" class="btn btn-secondary !h-9"><span class="material-symbols-outlined text-[18px]">download</span>匯出 CSV</button>
                     </div>
@@ -222,7 +238,7 @@
                         </thead>
                         <tbody class="divide-y divide-line text-ink">
                             {% for task in tasks_sorted %}
-                            <tr data-row class="hover:bg-surface-muted transition-colors align-top">
+                            <tr data-row data-date="{{ task.date.isoformat() }}" class="hover:bg-surface-muted transition-colors align-top">
                                 <td class="px-5 py-3 whitespace-nowrap text-ink-muted text-sm">
                                     {{ task.date.strftime('%Y/%m/%d') }}
                                 </td>
@@ -285,11 +301,67 @@
             document.getElementById('log-prev').disabled = page === 0;
             document.getElementById('log-next').disabled = page >= pages - 1;
         }
-        q.addEventListener('input', function () {
+        // Period filter compares the row's ISO date string by prefix (YYYY / YYYY-MM / YYYY-MM-DD),
+        // so no Date parsing is involved (avoids the UTC-shift bug of new Date('YYYY-MM-DD')).
+        const gran = document.getElementById('log-gran');
+        const pickers = {year: document.getElementById('log-year'),
+                         month: document.getElementById('log-month'),
+                         day: document.getElementById('log-day')};
+        function periodPrefix() {
+            const p = pickers[gran.value];
+            return p ? p.value : '';
+        }
+        // Highlight matches in text nodes only (personnel, description, notes); never innerHTML.
+        function clearHighlights() {
+            rows.forEach(function (r) {
+                r.querySelectorAll('mark.kw-hit').forEach(m => m.replaceWith(document.createTextNode(m.textContent)));
+                r.normalize();
+            });
+        }
+        function highlight(row, k) {
+            row.querySelectorAll('td:nth-child(2) a, td:nth-child(5), td:nth-child(6)').forEach(function (cell) {
+                const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+                const nodes = [];
+                while (walker.nextNode()) nodes.push(walker.currentNode);
+                nodes.forEach(function (node) {
+                    const text = node.nodeValue, lower = text.toLowerCase();
+                    let i = lower.indexOf(k);
+                    if (i < 0) return;
+                    const frag = document.createDocumentFragment();
+                    let last = 0;
+                    while (i >= 0) {
+                        frag.appendChild(document.createTextNode(text.slice(last, i)));
+                        const m = document.createElement('mark');
+                        m.className = 'kw-hit';
+                        m.textContent = text.slice(i, i + k.length);
+                        frag.appendChild(m);
+                        last = i + k.length;
+                        i = lower.indexOf(k, last);
+                    }
+                    frag.appendChild(document.createTextNode(text.slice(last)));
+                    node.replaceWith(frag);
+                });
+            });
+        }
+        function applyFilters() {
             const k = q.value.trim().toLowerCase();
-            shown = k ? rows.filter(r => r.innerText.toLowerCase().includes(k)) : rows;
+            const prefix = periodPrefix();
+            clearHighlights();
+            shown = rows.filter(r => (!prefix || r.dataset.date.startsWith(prefix))
+                                     && (!k || r.textContent.toLowerCase().includes(k)));
+            if (k) shown.forEach(r => highlight(r, k));
             page = 0; render();
+        }
+        gran.addEventListener('change', function () {
+            Object.keys(pickers).forEach(g => pickers[g].classList.toggle('hidden', g !== gran.value));
+            // Default each picker to the newest record's period so a choice shows results immediately.
+            const newest = rows.length ? rows[0].dataset.date : '';
+            if (gran.value === 'month' && !pickers.month.value) pickers.month.value = newest.slice(0, 7);
+            if (gran.value === 'day' && !pickers.day.value) pickers.day.value = newest;
+            applyFilters();
         });
+        Object.values(pickers).forEach(p => p.addEventListener('change', applyFilters));
+        q.addEventListener('input', applyFilters);
         document.getElementById('log-prev').onclick = function () { page--; render(); };
         document.getElementById('log-next').onclick = function () { page++; render(); };
         document.getElementById('log-csv').onclick = function () {
