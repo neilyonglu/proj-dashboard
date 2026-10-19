@@ -120,7 +120,9 @@ def register(app):
 
     @app.route('/employee-case')
     def employee_case():
-        if request.args.get('view') == 'overview':
+        # Overview is the landing view; a person page needs ?person= or ?view=person.
+        view_arg = request.args.get('view')
+        if view_arg == 'overview' or (view_arg != 'person' and 'person' not in request.args):
             personnel_list = [(p.name, p.display_name or p.name) for p in
                               Personnel.query.filter(Personnel.resigned_date.is_(None)).order_by(Personnel.name)]
             return render_template('employee_case.html', view='overview', personnel_list=personnel_list,

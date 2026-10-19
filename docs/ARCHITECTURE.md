@@ -1,6 +1,6 @@
 # ARCHITECTURE — proj-dashboard (reference)
 
-Extracted from the old CLAUDE.md on 2026-07-06; updated for v2.1.0 on 2026-10-19. This is a convenience map — the code
+Extracted from the old CLAUDE.md on 2026-07-06; updated for v2.1.1 on 2026-10-19. This is a convenience map — the code
 is the source of truth. If this file disagrees with the code, fix this file
 (see global `40-maintenance.md`).
 
@@ -75,7 +75,7 @@ Public (`core/routes/main.py`, `projects.py`, `tasks.py`):
 | `GET/POST /add-task`, `/edit-task/<id>`; `POST /delete-task/<id>` | task CRUD |
 | `GET /timeline` | Gantt chart (month/quarter/year zoom) |
 | `GET /project/<id>` | project detail page |
-| `GET /employee-case` | per-employee dashboard; `?view=overview[&month=YYYY-MM]` = month calendar of every employee's records (grid and dots rendered server-side by `build_overview()` in `core/routes/main.py`, day popover is a `<dialog>` fed by inline JSON). Task table shows 20 rows at a time (client-side 「載入更多」). |
+| `GET /employee-case` | lands on the overview unless `?person=` or `?view=person` is given (person page); `?view=overview[&month=YYYY-MM]` = month calendar of every employee's records (grid and dots rendered server-side by `build_overview()` in `core/routes/main.py`, day popover is a `<dialog>` fed by inline JSON). Task table shows 20 rows at a time (client-side 「載入更多」). |
 | `GET /overtime-stats` | overtime statistics |
 
 Admin, session-gated (`admin.py`, `manage.py`):

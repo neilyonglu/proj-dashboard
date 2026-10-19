@@ -56,18 +56,18 @@
                 <section class="flex flex-col gap-4">
                     <div class="inline-flex w-fit items-center rounded-md border border-line overflow-hidden text-sm font-medium">
                         <a href="{{ url_for('employee_case', view='overview') }}" class="group-mode-btn px-4 py-1.5 transition-colors {% if view == 'overview' %}active{% endif %}">總覽</a>
-                        <a href="{{ url_for('employee_case') }}" class="group-mode-btn px-4 py-1.5 border-l border-line transition-colors {% if view != 'overview' %}active{% endif %}">個人</a>
+                        <a href="{{ url_for('employee_case', view='person') }}" class="group-mode-btn px-4 py-1.5 border-l border-line transition-colors {% if view != 'overview' %}active{% endif %}">個人</a>
                     </div>
                     <label class="flex flex-col w-full md:max-w-md gap-2">
                         <span class="text-sm font-medium text-ink-muted">選擇員工</span>
                         <div class="relative">
                             <span
                                 class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted">person_search</span>
-                            <select id="employee-select" onchange="switchEmployee(this.value)"
+                            <select id="employee-select" onchange="switchEmployee(this.value)" autocomplete="off"
                                 class="input h-11 pl-10 pr-10 appearance-none">
                                 <option value="__overview__" {% if view == 'overview' %}selected{% endif %}>總覽（全部員工）</option>
                                 {% for pid, pname in personnel_list %}
-                                <option value="{{ pid }}" {% if pid == selected %}selected{% endif %}>{{ pname }}</option>
+                                <option value="{{ pid }}" {% if view != 'overview' and pid == selected %}selected{% endif %}>{{ pname }}</option>
                                 {% endfor %}
                             </select>
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-ink-muted">
@@ -365,6 +365,14 @@
         if (person === '__overview__') { window.location.href = '{{ url_for("employee_case") }}?view=overview'; return; }
         window.location.href = '{{ url_for("employee_case") }}?person=' + encodeURIComponent(person);
     }
+    // Browsers restore a <select>'s last choice on back/forward (bfcache) or reload, so it can
+    // disagree with the page content; always snap it back to the server-rendered selection.
+    window.addEventListener('pageshow', function () {
+        const sel = document.getElementById('employee-select');
+        if (!sel) return;
+        const current = Array.from(sel.options).find(function (o) { return o.defaultSelected; });
+        if (current) sel.value = current.value;
+    });
 </script>
 {% if view == 'overview' %}
 <script id="overview-data" type="application/json">{{ {'employees': overview.employees, 'days': overview.days}|tojson }}</script>
