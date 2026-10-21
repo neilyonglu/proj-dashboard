@@ -1,6 +1,6 @@
 # 專案派工進度 Dashboard
 
-> 目前版本：v2.3.0
+> 目前版本：v2.3.1
 
 用來填寫工作紀錄、查詢員工工時、管理專案進度與檢視加班統計。詳細操作請參閱 [使用手冊](使用手冊.md)；版本變更請查看 [GitHub Releases](https://github.com/neilyonglu/proj-dashboard/releases)。
 

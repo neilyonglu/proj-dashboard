@@ -489,6 +489,7 @@
         dataRows.forEach(function (r) { delete r.dataset.gkey; });
 
         if (mode === 'all') {
+            syncPieOptions([]);
             refreshVisibility();
             syncToggleAllBtn();
             return;
@@ -516,6 +517,7 @@
             tbody.insertBefore(buildGroupHeader(key, full.get(key), expandedState[key]), row);
         });
 
+        syncPieOptions(Array.from(firstRow.keys()));
         refreshVisibility();
         syncToggleAllBtn();
     }
@@ -608,18 +610,19 @@
             else toggleBtn.classList.remove('hidden');
         }
 
-        // Pie period options: 全部 + every period of this grouping mode, newest first
-        const keys = Array.from(new Set(TASK_AGG.map(function (a) { return getGroupKey(a[0], mode); })))
-            .filter(Boolean).sort().reverse();
-        const sel = document.getElementById('pie-period');
-        if (sel) {
-            sel.replaceChildren(new Option('全部', ''), ...keys.map(function (k) { return new Option(k, k); }));
-            document.querySelectorAll('.pie-step').forEach(function (b) { b.classList.toggle('hidden', mode === 'all'); });
-        }
+        document.querySelectorAll('.pie-step').forEach(function (b) { b.classList.toggle('hidden', mode === 'all'); });
 
         pieKey = null;
         applyGrouping(mode);
         renderEmpPieChart(null);
+    }
+
+    // Pie period options: 全部 + only the periods loaded in the table below, in table order
+    function syncPieOptions(keys) {
+        const sel = document.getElementById('pie-period');
+        if (!sel) return;
+        sel.replaceChildren(new Option('全部', ''), ...keys.map(function (k) { return new Option(k, k); }));
+        sel.value = pieKey || '';
     }
 
     // dir: +1 = older period, -1 = newer (options are newest first; index 0 is 全部)

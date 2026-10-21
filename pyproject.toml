@@ -1,6 +1,6 @@
 [project]
 name = "proj-dashboard"
-version = "2.3.0"
+version = "2.3.1"
 requires-python = ">=3.12"
 dependencies = [
     "flask==3.1.0",
