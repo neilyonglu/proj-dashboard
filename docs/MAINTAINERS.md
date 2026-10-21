@@ -249,4 +249,12 @@ uv export --locked --no-hashes --no-header --no-annotate --no-emit-project --out
 
 依 AGENTS.md 先告知功能，再更新功能、文件及版本。發布前同步 app.py、pyproject.toml、文件版本並 uv lock；取得 push 授權後才提交、push、維護對應 tag／GitHub Release。此 CI/CD workflow 不會自行建立 tag 或 Release。
 
+本機沒有 `gh` CLI 時，用 git 已存的 GitHub 憑證呼叫 API 建 Release（Git Bash；`body.json` 為 `{"tag_name","name","body"}`，用 Python `json.dumps` 產生以免中文跳脫出錯）：
+
+```bash
+TOKEN=$(printf 'protocol=https\nhost=github.com\n\n' | git credential fill | sed -n 's/^password=//p')
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+  --data-binary @body.json https://api.github.com/repos/neilyonglu/proj-dashboard/releases
+```
+
 最後回報需分別確認 push、Release、CI、server 部署狀態；本機測試通過不等於 GitHub 或 server 已執行。
