@@ -17,3 +17,7 @@ __pycache__/
 
 # CodeGraph local index (not for version control)
 .codegraph/
+
+# model-ladder working folders
+.model-ladder/
+.claude/worktrees/

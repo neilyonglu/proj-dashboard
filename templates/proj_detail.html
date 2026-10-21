@@ -7,7 +7,7 @@
 <div class="layout-container flex grow flex-col bg-surface-muted">
 
     <!-- Header -->
-    <div class="flex items-center justify-between px-6 py-3 border-b border-line bg-surface shrink-0">
+    <div class="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-line bg-surface shrink-0">
         <div class="flex items-center gap-3">
             <a href="{{ url_for('proj_timeline') }}"
                class="flex items-center gap-1 text-ink-muted hover:text-primary transition-colors"
@@ -225,7 +225,7 @@
                     </div>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm border-collapse">
+                    <table class="m-cards w-full text-left text-sm border-collapse">
                         <thead>
                             <tr class="bg-surface-muted border-b border-line text-ink-muted text-sm font-medium">
                                 <th class="px-5 py-3 whitespace-nowrap">日期</th>
@@ -239,27 +239,27 @@
                         <tbody class="divide-y divide-line text-ink">
                             {% for task in tasks_sorted %}
                             <tr data-row data-date="{{ task.date.isoformat() }}" class="hover:bg-surface-muted transition-colors align-top">
-                                <td class="px-5 py-3 whitespace-nowrap text-ink-muted text-sm">
+                                <td data-label="日期" class="px-5 py-3 whitespace-nowrap text-ink-muted text-sm">
                                     {{ task.date.strftime('%Y/%m/%d') }}
                                 </td>
-                                <td class="px-5 py-3 whitespace-nowrap">
+                                <td data-label="人員" class="px-5 py-3 whitespace-nowrap">
                                     <a href="{{ url_for('employee_case', person=task.personnel, project_id=proj.id) }}"
                                        class="px-2 py-0.5 rounded-sm text-xs font-medium bg-surface-muted text-ink hover:bg-primary/10 hover:text-primary transition-colors">
                                         {{ task.personnel }}
                                     </a>
                                 </td>
-                                <td class="px-5 py-3 text-right whitespace-nowrap">
+                                <td data-label="總時數" class="px-5 py-3 text-right whitespace-nowrap">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-primary/10 text-primary num">
                                         {{ '%g'|format(task.total_hours|round(1)) }} 小時
                                     </span>
                                 </td>
-                                <td class="px-5 py-3 text-center whitespace-nowrap text-ink-muted text-sm">
+                                <td data-label="時數（日/加/夜）" class="px-5 py-3 text-center whitespace-nowrap text-ink-muted text-sm">
                                     <span class="text-sky-600 dark:text-sky-400">{{ task.day_hours if task.day_hours is not none else '—' }}</span> /
                                     <span class="text-amber-600 dark:text-amber-400 font-medium">{{ task.overtime_hours if task.overtime_hours is not none else '—' }}</span> /
                                     <span class="text-indigo-600 dark:text-indigo-400">{{ task.night_hours if task.night_hours is not none else '—' }}</span>
                                 </td>
-                                <td class="px-5 py-3 whitespace-pre-wrap text-ink leading-relaxed text-sm">{{ task.description }}</td>
-                                <td class="px-5 py-3 whitespace-pre-wrap text-ink-muted text-sm">{{ task.notes or '' }}</td>
+                                <td data-label="工作內容" class="px-5 py-3 whitespace-pre-wrap text-ink leading-relaxed text-sm">{{ task.description }}</td>
+                                <td data-label="備註" class="px-5 py-3 whitespace-pre-wrap text-ink-muted text-sm">{{ task.notes or '' }}</td>
                             </tr>
                             {% else %}
                             <tr>

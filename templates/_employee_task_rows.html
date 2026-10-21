@@ -7,23 +7,23 @@
     data-ot-hours="{{ task.overtime_hours or 0 }}"
     data-night-hours="{{ task.night_hours or 0 }}"
     data-project="{{ task.project.name if task.project else 'N/A' }}">
-    <td class="px-6 py-4 text-sm text-ink-muted whitespace-nowrap">
+    <td data-label="日期" class="px-6 py-4 text-sm text-ink-muted whitespace-nowrap">
         {{ task.date.strftime('%Y/%m/%d') }}</td>
-    <td class="px-6 py-4 text-sm font-medium whitespace-nowrap">
+    <td data-label="專案" class="px-6 py-4 text-sm font-medium whitespace-nowrap">
         {% if task.project %}<a href="{{ url_for('project_detail', id=task.project_id) }}"
             class="inline-flex items-center gap-1 text-ink hover:text-primary hover:underline"><span class="material-symbols-outlined text-[16px] text-ink-muted">folder</span>{{ task.project.name }}</a>{% else %}N/A{% endif %}
     </td>
-    <td class="px-6 py-4 text-sm whitespace-nowrap">
+    <td data-label="總時數" class="px-6 py-4 text-sm whitespace-nowrap">
         <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-sm font-medium bg-primary/10 text-primary num">{{ '%g'|format(task.total_hours|round(1)) }} 小時</span>
     </td>
-    <td class="px-6 py-4 text-sm text-ink-muted whitespace-nowrap text-center">
+    <td data-label="時數(日/加/夜)" class="px-6 py-4 text-sm text-ink-muted whitespace-nowrap text-center">
         {{ task.day_hours if task.day_hours is not none else '-' }} /
         {{ task.overtime_hours if task.overtime_hours is not none else '-' }} /
         {{ task.night_hours if task.night_hours is not none else '-' }}
     </td>
-    <td class="px-6 py-4 text-sm text-ink-muted whitespace-pre-wrap break-words max-w-[300px] text-left align-top">{{ task.description }}</td>
-    <td class="px-6 py-4 text-sm text-ink-muted whitespace-pre-wrap break-words max-w-[200px] text-left align-top">{{ task.notes if task.notes else '' }}</td>
-    <td class="px-6 py-4 text-center align-top">
+    <td data-label="工作內容" class="px-6 py-4 text-sm text-ink-muted whitespace-pre-wrap break-words max-w-[300px] text-left align-top">{{ task.description }}</td>
+    <td data-label="備註" class="px-6 py-4 text-sm text-ink-muted whitespace-pre-wrap break-words max-w-[200px] text-left align-top">{{ task.notes if task.notes else '' }}</td>
+    <td data-label="操作" class="px-6 py-4 text-center align-top">
         <div class="flex items-center justify-center gap-1">
             <a href="{{ url_for('edit_task', id=task.id, redirect_to=url_for('employee_case', person=selected)) }}"
                 class="text-ink-muted hover:text-primary hover:bg-primary/10 p-1.5 rounded-md transition-colors"

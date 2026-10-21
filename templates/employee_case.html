@@ -14,6 +14,7 @@
             .dark .grp-header-row td { border-color: #2a2b30; }
             .grp-header-row:hover { background-color: #e2e8f0 !important; }
             .dark .grp-header-row:hover { background-color: #243850 !important; }
+            .grp-header-row.pie-active td { box-shadow: inset 3px 0 0 #3b82f6; background-color: rgba(59, 130, 246, .12); }
             .grp-chev { transition: transform .18s ease; display: inline-block; }
             .group-mode-btn { background: transparent; border: none; cursor: pointer; color: #64748b; }
             .group-mode-btn.active { background: var(--color-primary, #2563eb); color: #fff; }
@@ -209,12 +210,17 @@
                                 <div class="flex items-center gap-1.5 text-sm font-semibold text-ink">
                                     <span class="material-symbols-outlined text-[16px] text-primary">pie_chart</span>
                                     專案分佈
-                                    <span id="pie-period-label" class="text-xs font-normal text-ink-muted bg-surface-muted px-2 py-0.5 rounded-sm ml-1">全部</span>
                                 </div>
-                                <button id="pie-reset-btn" onclick="renderEmpPieChart(null)" style="display:none"
-                                    class="text-sm text-primary hover:underline flex items-center gap-0.5 transition-colors">
-                                    <span class="material-symbols-outlined text-[12px]">close</span> 重置
-                                </button>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" class="pie-step p-1 rounded-md text-ink-muted hover:text-primary hover:bg-surface-muted" onclick="stepPiePeriod(1)" title="上一期" aria-label="上一期">
+                                        <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                                    </button>
+                                    <select id="pie-period" onchange="renderEmpPieChart(this.value || null)" aria-label="圓餅圖期間"
+                                        class="text-sm rounded-md border border-line bg-surface text-ink px-2 py-1"></select>
+                                    <button type="button" class="pie-step p-1 rounded-md text-ink-muted hover:text-primary hover:bg-surface-muted" onclick="stepPiePeriod(-1)" title="下一期" aria-label="下一期">
+                                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                                    </button>
+                                </div>
                             </div>
                             <div class="flex items-start gap-5 flex-wrap">
                                 <div class="relative" style="width:200px;height:200px;min-width:200px;flex-shrink:0;">
@@ -271,7 +277,7 @@
 
                     <div class="panel overflow-hidden">
                         <div class="overflow-x-auto w-full">
-                            <table class="w-full text-left border-collapse min-w-[800px]">
+                            <table class="m-cards w-full text-left border-collapse md:min-w-[800px]">
                                 <thead>
                                     <tr class="bg-surface-muted border-b border-line">
                                         <th class="px-6 py-3 text-sm font-medium text-ink-muted whitespace-nowrap">工作日期</th>
@@ -466,7 +472,8 @@
                 '<span style="padding:1px 8px;border-radius:9999px;font-size:.7rem;font-weight:600;background:#dbeafe;color:#1d4ed8;">' + fmtN(g.totalH) + ' 小時</span>' +
                 hoursHtml +
             '</div>';
-        td.addEventListener('click', function () { toggleGroup(key); renderEmpPieChart(key); });
+        if (key === pieKey) tr.classList.add('pie-active');
+        td.addEventListener('click', function () { toggleGroup(key); });
         tr.appendChild(td);
         return tr;
     }
@@ -601,8 +608,25 @@
             else toggleBtn.classList.remove('hidden');
         }
 
+        // Pie period options: 全部 + every period of this grouping mode, newest first
+        const keys = Array.from(new Set(TASK_AGG.map(function (a) { return getGroupKey(a[0], mode); })))
+            .filter(Boolean).sort().reverse();
+        const sel = document.getElementById('pie-period');
+        if (sel) {
+            sel.replaceChildren(new Option('全部', ''), ...keys.map(function (k) { return new Option(k, k); }));
+            document.querySelectorAll('.pie-step').forEach(function (b) { b.classList.toggle('hidden', mode === 'all'); });
+        }
+
+        pieKey = null;
         applyGrouping(mode);
         renderEmpPieChart(null);
+    }
+
+    // dir: +1 = older period, -1 = newer (options are newest first; index 0 is 全部)
+    function stepPiePeriod(dir) {
+        const sel = document.getElementById('pie-period');
+        const i = Math.min(Math.max(sel.selectedIndex + dir, 0), sel.options.length - 1);
+        renderEmpPieChart(sel.options[i].value || null);
     }
 
     // ── Employee Pie Chart ────────────────────────────────────────────────────
@@ -611,6 +635,7 @@
         '#06b6d4','#f97316','#84cc16','#ec4899','#6366f1','#14b8a6','#fb923c'
     ];
     let empPieChart = null;
+    let pieKey = null; // period shown in the pie (null = 全部)
 
     function empPieExternalTooltip(context) {
         const { chart, tooltip } = context;
@@ -655,13 +680,12 @@
 
         const pd = buildEmpPieData(gkey);
 
-        // Update period label
-        const lbl = document.getElementById('pie-period-label');
-        if (lbl) lbl.textContent = gkey || '全部';
-
-        // Show/hide reset button
-        const resetBtn = document.getElementById('pie-reset-btn');
-        if (resetBtn) resetBtn.style.display = gkey ? '' : 'none';
+        pieKey = gkey;
+        const sel = document.getElementById('pie-period');
+        if (sel) sel.value = gkey || '';
+        document.querySelectorAll('tr.grp-header-row').forEach(function (h) {
+            h.classList.toggle('pie-active', h.dataset.gkey === gkey);
+        });
 
         const total = pd.data.reduce(function(a, b) { return a + b; }, 0);
         const totalEl = document.getElementById('emp-pie-total');

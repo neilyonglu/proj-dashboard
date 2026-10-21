@@ -139,8 +139,12 @@ def register(app):
             flash('僅管理者可刪除專案', 'error')
             return redirect(url_for('manage_db'))
         project = Project.query.get_or_404(id)
+        task_count = len(project.tasks)
+        if task_count and request.form.get('force') != '1':
+            flash(f'「{project.name}」還有 {task_count} 筆工作紀錄，請先處理或選擇強制刪除', 'error')
+            return redirect(url_for('manage_db'))
         try:
-            detail = f'project_id={id}, name={project.name}'
+            detail = f'project_id={id}, name={project.name}, tasks={task_count}'
             db.session.delete(project)
             db.session.commit()
             log_action(request.remote_addr, '刪除專案', detail)

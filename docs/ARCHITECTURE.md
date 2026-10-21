@@ -1,6 +1,6 @@
 # ARCHITECTURE — proj-dashboard (reference)
 
-Extracted from the old CLAUDE.md on 2026-07-06; updated for v2.2.1 on 2026-10-19. This is a convenience map — the code
+Extracted from the old CLAUDE.md on 2026-07-06; updated for v2.3.0 on 2026-10-21. This is a convenience map — the code
 is the source of truth. If this file disagrees with the code, fix this file
 (see global `40-maintenance.md`).
 
@@ -71,11 +71,11 @@ Public (`core/routes/main.py`, `projects.py`, `tasks.py`):
 | Route | Purpose |
 |---|---|
 | `GET /` | dashboard |
-| `GET/POST /add-project`, `/edit-project/<id>`; `POST /delete-project/<id>` | project CRUD |
+| `GET/POST /add-project`, `/edit-project/<id>`; `POST /delete-project/<id>` | project CRUD; deleting a project that still has tasks requires form `force=1` (manage_db lists the tasks from a per-row `<template>`, then 強制刪除 + second confirm) |
 | `GET/POST /add-task`, `/edit-task/<id>`; `POST /delete-task/<id>` | task CRUD |
 | `GET /timeline` | Gantt chart (month/quarter/year zoom) |
 | `GET /project/<id>` | project detail page; task log has client-side keyword search (matches highlighted as `mark.kw-hit` on text nodes) and a 全部/年/月/日 period filter that prefix-matches each row's `data-date` (ISO string, no Date parsing); CSV export follows the filtered rows |
-| `GET /employee-case` | lands on the overview unless `?person=` or `?view=person` is given (person page); `?view=overview[&month=YYYY-MM]` = month calendar of every employee's records (grid and dots rendered server-side by `build_overview()` in `core/routes/main.py`, day popover is a `<dialog>` fed by inline JSON: compact employee-dot + project list, per-record details in collapsed `<details>`, no avatars). Person page renders only the first 20 task rows (`templates/_employee_task_rows.html`); 「載入更多」 fetches the next slice from `GET /employee-case/tasks?person=&offset=&limit=[&project_id=]` (JSON `{html,count,total,next_offset}`, date desc + id desc). Stat cards, pie chart and group-header totals come from `_person_task_aggregates()` (full set, passed as `TASK_AGG`), not from loaded rows. |
+| `GET /employee-case` | lands on the overview unless `?person=` or `?view=person` is given (person page); `?view=overview[&month=YYYY-MM]` = month calendar of every employee's records (grid and dots rendered server-side by `build_overview()` in `core/routes/main.py`, day popover is a `<dialog>` fed by inline JSON: compact employee-dot + project list, per-record details in collapsed `<details>`, no avatars). Person page renders only the first 20 task rows (`templates/_employee_task_rows.html`); 「載入更多」 fetches the next slice from `GET /employee-case/tasks?person=&offset=&limit=[&project_id=]` (JSON `{html,count,total,next_offset}`, date desc + id desc). Pie period is picked by the `#pie-period` select / ◀▶ on the pie card (group headers only expand/collapse). Stat cards, pie chart and group-header totals come from `_person_task_aggregates()` (full set, passed as `TASK_AGG`), not from loaded rows. |
 | `GET /overtime-stats` | overtime statistics |
 
 Admin, session-gated (`admin.py`, `manage.py`):

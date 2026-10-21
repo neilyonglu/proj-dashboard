@@ -13,7 +13,16 @@
         <span class="material-symbols-outlined flex h-7 w-7 items-center justify-center rounded-md bg-primary text-[18px] text-white" aria-hidden="true">view_kanban</span>
         <span class="hidden text-[15px] font-semibold leading-tight tracking-tight sm:inline">專案派工進度</span>
     </a>
-    <nav aria-label="主選單" class="hide-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sm:px-4">
+    {# below md: hamburger (native details, no JS) #}
+    <details class="relative md:hidden">
+        <summary aria-label="開啟選單" class="btn btn-secondary !w-8 !px-0 list-none [&::-webkit-details-marker]:hidden"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">menu</span></summary>
+        <div class="anim-dropdown absolute left-0 top-full z-40 mt-2 flex w-48 flex-col gap-1 rounded-lg border border-line bg-surface p-2 shadow-lg">
+            {% for endpoint, label, group in nav_items %}
+            <a href="{{ url_for(endpoint) }}" {% if ep in group %}aria-current="page"{% endif %} class="rounded-md px-3 py-2 text-sm font-medium {% if ep in group %}bg-surface-muted text-ink{% else %}text-ink-muted hover:bg-surface-muted hover:text-ink{% endif %}">{{ label }}</a>
+            {% endfor %}
+        </div>
+    </details>
+    <nav aria-label="主選單" class="hide-scrollbar hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto px-4 md:flex">
         {% for endpoint, label, group in nav_items %}
         {% set active = ep in group %}
         <a href="{{ url_for(endpoint) }}" {% if active %}aria-current="page"{% endif %}

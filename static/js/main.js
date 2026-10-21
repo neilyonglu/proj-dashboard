@@ -335,3 +335,8 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('resize', place);
     });
 });
+
+// Mobile hamburger (<details> in _header.html): close when tapping outside it
+document.addEventListener('click', (e) => {
+    document.querySelectorAll('header details[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; });
+});

@@ -130,7 +130,7 @@
                     <h3 class="text-sm font-bold text-ink">依人員統計</h3>
                     <span class="rounded-full bg-primary/10 px-2 py-0.5 text-sm font-medium text-primary">{{ personnel_stats|length }} 位人員</span>
                 </div>
-                <table class="w-full text-left text-sm border-collapse" id="ot-table-personnel">
+                <table class="m-cards w-full text-left text-sm border-collapse" id="ot-table-personnel">
                     <thead>
                         <tr class="bg-surface-muted border-b border-line text-ink-muted text-sm font-semibold">
                             <th class="px-4 py-2.5">人員</th>
@@ -143,11 +143,11 @@
                     <tbody class="divide-y divide-line text-ink">
                         {% for r in personnel_stats %}
                         <tr class="hover:bg-surface-muted transition-colors">
-                            <td class="px-4 py-2.5 font-medium text-ink">{{ r.display_name }}</td>
-                            <td class="px-4 py-2.5 text-right text-sky-700 dark:text-sky-400">{{ '%g'|format(r.day) }}</td>
-                            <td class="px-4 py-2.5 text-right"><span class="rounded-full bg-amber-500/15 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">{{ '%g'|format(r.overtime) }}</span></td>
-                            <td class="px-4 py-2.5 text-right text-indigo-700 dark:text-indigo-400">{{ '%g'|format(r.night) }}</td>
-                            <td class="px-4 py-2.5 text-right text-ink-muted">{{ r.count }}</td>
+                            <td data-label="人員" class="px-4 py-2.5 font-medium text-ink">{{ r.display_name }}</td>
+                            <td data-label="日班(小時)" class="px-4 py-2.5 text-right text-sky-700 dark:text-sky-400">{{ '%g'|format(r.day) }}</td>
+                            <td data-label="加班(小時)" class="px-4 py-2.5 text-right"><span class="rounded-full bg-amber-500/15 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">{{ '%g'|format(r.overtime) }}</span></td>
+                            <td data-label="夜班(小時)" class="px-4 py-2.5 text-right text-indigo-700 dark:text-indigo-400">{{ '%g'|format(r.night) }}</td>
+                            <td data-label="筆數" class="px-4 py-2.5 text-right text-ink-muted">{{ r.count }}</td>
                         </tr>
                         {% else %}
                         <tr><td colspan="5" class="px-4 py-8 text-center text-ink-muted">此區間沒有時數紀錄。</td></tr>
@@ -156,11 +156,11 @@
                     {% if personnel_stats %}
                     <tfoot>
                         <tr class="border-t border-line bg-surface-muted font-semibold text-ink">
-                            <td class="px-4 py-2.5">人員總計</td>
-                            <td class="px-4 py-2.5 text-right">{{ '%g'|format(personnel_stats|sum(attribute='day')) }}</td>
-                            <td class="px-4 py-2.5 text-right">{{ '%g'|format(personnel_stats|sum(attribute='overtime')) }}</td>
-                            <td class="px-4 py-2.5 text-right">{{ '%g'|format(personnel_stats|sum(attribute='night')) }}</td>
-                            <td class="px-4 py-2.5 text-right">{{ personnel_stats|sum(attribute='count') }}</td>
+                            <td data-label="人員" class="px-4 py-2.5">人員總計</td>
+                            <td data-label="日班(小時)" class="px-4 py-2.5 text-right">{{ '%g'|format(personnel_stats|sum(attribute='day')) }}</td>
+                            <td data-label="加班(小時)" class="px-4 py-2.5 text-right">{{ '%g'|format(personnel_stats|sum(attribute='overtime')) }}</td>
+                            <td data-label="夜班(小時)" class="px-4 py-2.5 text-right">{{ '%g'|format(personnel_stats|sum(attribute='night')) }}</td>
+                            <td data-label="筆數" class="px-4 py-2.5 text-right">{{ personnel_stats|sum(attribute='count') }}</td>
                         </tr>
                     </tfoot>
                     {% endif %}
@@ -174,7 +174,7 @@
                     <h3 class="text-sm font-bold text-ink">依專案統計</h3>
                     <span class="rounded-full bg-primary/10 px-2 py-0.5 text-sm font-medium text-primary">{{ project_stats|length }} 個專案</span>
                 </div>
-                <table class="w-full text-left text-sm border-collapse" id="ot-table-projects">
+                <table class="m-cards w-full text-left text-sm border-collapse" id="ot-table-projects">
                     <thead>
                         <tr class="bg-surface-muted border-b border-line text-ink-muted text-sm font-semibold">
                             <th class="px-4 py-2.5">專案</th>
@@ -187,11 +187,11 @@
                     <tbody class="divide-y divide-line text-ink">
                         {% for r in project_stats %}
                         <tr class="hover:bg-surface-muted transition-colors">
-                            <td class="px-4 py-2.5 font-medium text-ink">{{ r.name }}</td>
-                            <td class="px-4 py-2.5 text-right text-sky-700 dark:text-sky-400">{{ '%g'|format(r.day) }}</td>
-                            <td class="px-4 py-2.5 text-right"><span class="rounded-full bg-amber-500/15 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">{{ '%g'|format(r.overtime) }}</span></td>
-                            <td class="px-4 py-2.5 text-right text-indigo-700 dark:text-indigo-400">{{ '%g'|format(r.night) }}</td>
-                            <td class="px-4 py-2.5 text-right text-ink-muted">{{ r.count }}</td>
+                            <td data-label="專案" class="px-4 py-2.5 font-medium text-ink">{{ r.name }}</td>
+                            <td data-label="日班(小時)" class="px-4 py-2.5 text-right text-sky-700 dark:text-sky-400">{{ '%g'|format(r.day) }}</td>
+                            <td data-label="加班(小時)" class="px-4 py-2.5 text-right"><span class="rounded-full bg-amber-500/15 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-400">{{ '%g'|format(r.overtime) }}</span></td>
+                            <td data-label="夜班(小時)" class="px-4 py-2.5 text-right text-indigo-700 dark:text-indigo-400">{{ '%g'|format(r.night) }}</td>
+                            <td data-label="筆數" class="px-4 py-2.5 text-right text-ink-muted">{{ r.count }}</td>
                         </tr>
                         {% else %}
                         <tr><td colspan="5" class="px-4 py-8 text-center text-ink-muted">此區間沒有時數紀錄。</td></tr>
@@ -200,11 +200,11 @@
                     {% if project_stats %}
                     <tfoot>
                         <tr class="border-t border-line bg-surface-muted font-semibold text-ink">
-                            <td class="px-4 py-2.5">專案總計</td>
-                            <td class="px-4 py-2.5 text-right">{{ '%g'|format(project_stats|sum(attribute='day')) }}</td>
-                            <td class="px-4 py-2.5 text-right">{{ '%g'|format(project_stats|sum(attribute='overtime')) }}</td>
-                            <td class="px-4 py-2.5 text-right">{{ '%g'|format(project_stats|sum(attribute='night')) }}</td>
-                            <td class="px-4 py-2.5 text-right">{{ project_stats|sum(attribute='count') }}</td>
+                            <td data-label="專案" class="px-4 py-2.5">專案總計</td>
+                            <td data-label="日班(小時)" class="px-4 py-2.5 text-right">{{ '%g'|format(project_stats|sum(attribute='day')) }}</td>
+                            <td data-label="加班(小時)" class="px-4 py-2.5 text-right">{{ '%g'|format(project_stats|sum(attribute='overtime')) }}</td>
+                            <td data-label="夜班(小時)" class="px-4 py-2.5 text-right">{{ '%g'|format(project_stats|sum(attribute='night')) }}</td>
+                            <td data-label="筆數" class="px-4 py-2.5 text-right">{{ project_stats|sum(attribute='count') }}</td>
                         </tr>
                     </tfoot>
                     {% endif %}

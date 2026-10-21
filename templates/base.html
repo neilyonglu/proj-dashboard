@@ -127,6 +127,15 @@
         /* selects that draw their own chevron icon: drop the forms-plugin arrow */
         select.appearance-none { background-image: none; }
         a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
+        /* Mobile card tables: add class "m-cards" to <table>, data-label="..." on each <td> */
+        @media (max-width: 767px) {
+            table.m-cards, .m-cards tbody, .m-cards tfoot, .m-cards tr { display: block; min-width: 0 !important; }
+            .m-cards thead { display: none; }
+            .m-cards tr { padding: .5rem 0; }
+            .m-cards td { display: flex; justify-content: space-between; gap: 1rem; padding: .25rem 1rem !important; text-align: right !important; white-space: normal !important; max-width: none !important; overflow-wrap: anywhere; }
+            .m-cards td[data-label]::before { content: attr(data-label); flex-shrink: 0; text-align: left; opacity: .6; }
+            .m-cards td[colspan] { display: block; text-align: center !important; }
+        }
     </style>
 
     {% block extra_head %}{% endblock %}
