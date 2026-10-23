@@ -211,16 +211,6 @@
                                     <span class="material-symbols-outlined text-[16px] text-primary">pie_chart</span>
                                     專案分佈
                                 </div>
-                                <div class="flex items-center gap-1">
-                                    <button type="button" class="pie-step p-1 rounded-md text-ink-muted hover:text-primary hover:bg-surface-muted" onclick="stepPiePeriod(1)" title="上一期" aria-label="上一期">
-                                        <span class="material-symbols-outlined text-[18px]">chevron_left</span>
-                                    </button>
-                                    <select id="pie-period" onchange="renderEmpPieChart(this.value || null)" aria-label="圓餅圖期間"
-                                        class="text-sm rounded-md border border-line bg-surface text-ink px-2 py-1"></select>
-                                    <button type="button" class="pie-step p-1 rounded-md text-ink-muted hover:text-primary hover:bg-surface-muted" onclick="stepPiePeriod(-1)" title="下一期" aria-label="下一期">
-                                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
-                                    </button>
-                                </div>
                             </div>
                             <div class="flex items-start gap-5 flex-wrap">
                                 <div class="relative" style="width:200px;height:200px;min-width:200px;flex-shrink:0;">
@@ -262,6 +252,20 @@
                                 <button onclick="setGroupMode('week')" id="gbtn-week" class="group-mode-btn px-3 py-1.5 border-l border-line transition-colors">週</button>
                                 <button onclick="setGroupMode('day')" id="gbtn-day" class="group-mode-btn px-3 py-1.5 border-l border-line transition-colors">日</button>
                             </div>
+                            <!-- Pie chart period (moved here to sit with the grouping selector) -->
+                            {% if selected %}
+                            <div class="flex items-center gap-1" title="圓餅圖期間">
+                                <span class="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">pie_chart</span>
+                                <button type="button" class="pie-step p-1 rounded-md text-ink-muted hover:text-primary hover:bg-surface-muted" onclick="stepPiePeriod(1)" title="上一期" aria-label="上一期">
+                                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                                </button>
+                                <select id="pie-period" onchange="renderEmpPieChart(this.value || null)" aria-label="圓餅圖期間"
+                                    class="text-sm rounded-md border border-line bg-surface text-ink px-2 py-1"></select>
+                                <button type="button" class="pie-step p-1 rounded-md text-ink-muted hover:text-primary hover:bg-surface-muted" onclick="stepPiePeriod(-1)" title="下一期" aria-label="下一期">
+                                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                                </button>
+                            </div>
+                            {% endif %}
                             <!-- Expand / Collapse all (hidden in 'all' mode) -->
                             <button id="btn-toggle-all" onclick="toggleAllGroups()"
                                 class="hidden btn btn-secondary">

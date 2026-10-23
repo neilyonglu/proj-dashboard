@@ -340,12 +340,12 @@
 
                             <!-- Task segments (Solid bars) -->
                             {% for seg in item.segments %}
-                            <div class="timeline-bar task-segment absolute h-[26px] mt-[17px] bg-primary/25 hover:bg-primary/35 rounded-md flex items-center border border-primary/50 z-10 overflow-hidden cursor-pointer opacity-95 hover:opacity-100 transition-all"
-                                style="left: {{ seg.left }}%; width: {{ seg.width }}%; min-width: 40px;"
+                            <div class="timeline-bar task-segment absolute h-[26px] mt-[17px] bg-primary/25 hover:bg-primary/35 rounded-md flex items-center border border-primary/50 z-10 hover:z-20 w-max overflow-hidden cursor-pointer opacity-95 hover:opacity-100 transition-all"
+                                style="left: {{ seg.left }}%; min-width: max(40px, {{ seg.width }}%);"
                                 data-date="{{ seg.date }}"
                                 data-entries="{{ seg.entries | tojson | forceescape }}">
                                 <div class="bar-text flex items-center px-1.5 h-full whitespace-nowrap w-full justify-center">
-                                    <span class="text-[10px] font-bold text-ink truncate">{{ seg.names | join('、') }}{% if seg.entries | selectattr('resigned') | first %} ⚠{% endif %}</span>
+                                    <span class="text-[10px] font-bold text-ink">{{ seg.names | join('、') }}{% if seg.entries | selectattr('resigned') | first %} ⚠{% endif %}</span>
                                 </div>
                             </div>
                             {% endfor %}
@@ -1464,6 +1464,14 @@
 
                     bar.style.left = leftPct + '%';
                     bar.style.width = widthPct + '%';
+
+                    // Day cells follow the same range; days outside it are hidden
+                    row.querySelectorAll('.task-segment').forEach(seg => {
+                        const d = parseLocalDate(seg.dataset.date.replaceAll('/', '-'));
+                        seg.style.display = (d < TIMELINE_START || d >= TIMELINE_END) ? 'none' : '';
+                        seg.style.left = ((d - TIMELINE_START) / (1000 * 60 * 60 * 24) / totalDays * 100) + '%';
+                        seg.style.minWidth = `max(40px, ${100 / totalDays}%)`;
+                    });
                 });
 
                 // Re-render time markers and update zoom layout
