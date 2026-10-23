@@ -1387,7 +1387,8 @@
                 if (!startStr) { row.style.display = ''; return; }
 
                 const projStart = parseLocalDate(startStr);
-                const projEnd = endStr ? parseLocalDate(endStr) : parseLocalDate(startStr);
+                // Ongoing projects (no end date) run until today, same as periodOverlaps()
+                const projEnd = endStr ? parseLocalDate(endStr) : (projStart > TODAY_LOCAL ? projStart : TODAY_LOCAL);
                 let show = true;
 
                 // Check overlap: project overlaps with [filterStart, filterEnd]
@@ -1450,7 +1451,7 @@
                     if (!startStr) return;
 
                     const projStart = parseLocalDate(startStr);
-                    let projEnd = endStr ? parseLocalDate(endStr) : new Date(projStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+                    let projEnd = endStr ? parseLocalDate(endStr) : (projStart > TODAY_LOCAL ? projStart : TODAY_LOCAL);
 
                     // Clamp project dates to the visible range
                     const visStart = new Date(Math.max(projStart.getTime(), TIMELINE_START.getTime()));
