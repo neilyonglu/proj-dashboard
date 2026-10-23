@@ -1,6 +1,6 @@
 # 開發與部署指南
 
-目前版本：v2.3.1。使用者操作請看 [README](../README.md) 與 [使用手冊](../使用手冊.md)；程式模組請看 [架構文件](ARCHITECTURE.md)。版本變更只記錄於 GitHub Releases。
+目前版本：v2.3.2。使用者操作請看 [README](../README.md) 與 [使用手冊](../使用手冊.md)；程式模組請看 [架構文件](ARCHITECTURE.md)。版本變更只記錄於 GitHub Releases。
 
 ## 1. 部署設定與目前進度
 

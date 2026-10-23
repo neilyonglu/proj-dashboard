@@ -351,6 +351,9 @@ def register(app):
             '已結案': 'bg-green-700/80',
         }
 
+        resigned_map = {p.name: p.resigned_date.strftime('%Y/%m/%d')
+                        for p in Personnel.query.filter(Personnel.resigned_date.isnot(None)).all()}
+
         timeline_data = []
         for p in projects:
             offset_days = (p.start_date - timeline_start).days
@@ -359,21 +362,21 @@ def register(app):
             duration_days = max(1, (end_d - p.start_date).days)
             width_percent = min(100 - left_percent, (duration_days / total_days) * 100)
 
-            segments = []
+            # One cell per day: all task records of the same date share a segment
+            by_date = {}
             for t in p.tasks:
-                if not t.date:
-                    continue
-                task_days = max(1, int(t.total_hours // 8))
-                task_end = t.date + timedelta(days=task_days)
-                t_offset = (t.date - timeline_start).days
-                t_left = max(0, (t_offset / total_days) * 100)
-                t_width = min(100 - t_left, (max(1, (task_end - t.date).days) / total_days) * 100)
+                if t.date:
+                    by_date.setdefault(t.date, []).append(t)
+            segments = []
+            for d in sorted(by_date):
+                t_left = max(0, ((d - timeline_start).days / total_days) * 100)
+                tasks = by_date[d]
                 segments.append({
-                    'left': t_left, 'width': t_width,
-                    'personnel': t.personnel, 'total_hours': t.total_hours,
-                    'date': t.date.strftime('%Y/%m/%d') if t.date else '',
-                    'day_hours': t.day_hours, 'overtime_hours': t.overtime_hours,
-                    'night_hours': t.night_hours, 'desc': t.description
+                    'left': t_left, 'width': min(100 - t_left, 100 / total_days),
+                    'date': d.strftime('%Y/%m/%d'),
+                    'names': list(dict.fromkeys(t.personnel for t in tasks)),
+                    'entries': [{'personnel': t.personnel, 'desc': t.description or '',
+                                 'resigned': resigned_map.get(t.personnel, '')} for t in tasks],
                 })
 
             timeline_data.append({
@@ -412,9 +415,6 @@ def register(app):
             if marker_days > 0:
                 time_markers.append({'label': label, 'width_percent': (marker_days / total_days) * 100})
             cur = nxt
-
-        resigned_map = {p.name: p.resigned_date.strftime('%Y/%m/%d')
-                        for p in Personnel.query.filter(Personnel.resigned_date.isnot(None)).all()}
 
         return render_template('proj_timeline.html',
                                projects=projects, timeline_data=timeline_data,

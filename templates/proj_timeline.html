@@ -147,7 +147,7 @@
             z-index: 100;
             pointer-events: none;
             display: none;
-            max-width: 320px;
+            max-width: min(320px, calc(100vw - 24px));
             background: #0f172a;
             color: #fff;
             font-size: 12px;
@@ -159,6 +159,8 @@
         #seg-tooltip .tt-title { font-weight: 700; margin-bottom: 4px; }
         #seg-tooltip .tt-row { color: #cbd5e1; }
         #seg-tooltip .tt-row b { color: #fff; font-weight: 600; }
+        #seg-tooltip .tt-entry + .tt-entry { margin-top: 6px; padding-top: 6px; border-top: 1px solid #334155; }
+        #seg-tooltip .tt-desc { white-space: pre-line; }
 
         /* #3 Today line emphasis */
         .today-line .today-bar {
@@ -340,17 +342,10 @@
                             {% for seg in item.segments %}
                             <div class="timeline-bar task-segment absolute h-[26px] mt-[17px] bg-primary/25 hover:bg-primary/35 rounded-md flex items-center border border-primary/50 z-10 overflow-hidden cursor-pointer opacity-95 hover:opacity-100 transition-all"
                                 style="left: {{ seg.left }}%; width: {{ seg.width }}%; min-width: 40px;"
-                                data-personnel="{{ seg.personnel }}"
                                 data-date="{{ seg.date }}"
-                                data-total-hours="{{ seg.total_hours }}"
-                                data-day-hours="{{ seg.day_hours if seg.day_hours is not none else '' }}"
-                                data-ot-hours="{{ seg.overtime_hours if seg.overtime_hours is not none else '' }}"
-                                data-night-hours="{{ seg.night_hours if seg.night_hours is not none else '' }}"
-                                data-proj="{{ item.proj.name }}"
-                                data-resigned="{{ resigned_map[seg.personnel] if seg.personnel in resigned_map else '' }}"
-                                data-desc="{{ seg.desc if seg.desc else '' }}">
+                                data-entries="{{ seg.entries | tojson | forceescape }}">
                                 <div class="bar-text flex items-center px-1.5 h-full whitespace-nowrap w-full justify-center">
-                                    <span class="text-[10px] font-bold text-ink truncate">{{ seg.personnel }}{% if seg.personnel in resigned_map %} ⚠{% endif %}</span>
+                                    <span class="text-[10px] font-bold text-ink truncate">{{ seg.names | join('、') }}{% if seg.entries | selectattr('resigned') | first %} ⚠{% endif %}</span>
                                 </div>
                             </div>
                             {% endfor %}
@@ -415,7 +410,12 @@
             let TIMELINE_START = new Date(ORIG_TIMELINE_START);
             let TIMELINE_END = new Date(ORIG_TIMELINE_END);
             let TODAY_PCT = ORIG_TODAY_PCT;
-            const LEFT_COL_WIDTH = 300;
+
+            // Sticky name column is 150/200/300px depending on breakpoint
+            function leftColWidth() {
+                const col = document.querySelector('#view-timeline .sticky.left-0');
+                return (col && col.offsetWidth) || 300;
+            }
 
             let currentScale = 1.0;
             let currentTab = 'table';
@@ -676,7 +676,7 @@
             // =============================================
             function getScaledWidth() {
                 const scrollContainer = document.getElementById('view-timeline');
-                const viewWidth = scrollContainer ? (scrollContainer.clientWidth - LEFT_COL_WIDTH) : BASE_MIN_WIDTH;
+                const viewWidth = scrollContainer ? (scrollContainer.clientWidth - leftColWidth()) : BASE_MIN_WIDTH;
                 return Math.max(viewWidth, Math.round(FULL_WIDTH_AT_100 * currentScale));
             }
 
@@ -844,7 +844,7 @@
                     requestAnimationFrame(function() {
                         const newWidth = getScaledWidth();
                         const todayPos = (TODAY_PCT / 100) * newWidth;
-                        const viewWidth = scrollContainer.clientWidth - LEFT_COL_WIDTH;
+                        const viewWidth = scrollContainer.clientWidth - leftColWidth();
                         scrollContainer.scrollLeft = Math.max(0, todayPos - viewWidth / 2);
                         updateBarTextPositions();
                     });
@@ -863,7 +863,7 @@
                     requestAnimationFrame(function() {
                         const newWidth = getScaledWidth();
                         const todayPos = (TODAY_PCT / 100) * newWidth;
-                        const viewWidth = scrollContainer.clientWidth - LEFT_COL_WIDTH;
+                        const viewWidth = scrollContainer.clientWidth - leftColWidth();
                         scrollContainer.scrollLeft = Math.max(0, todayPos - viewWidth / 2);
                         updateBarTextPositions();
                     });
@@ -895,7 +895,7 @@
 
                 // Record the current center position as a fraction of the full timeline
                 const oldWidth = getScaledWidth();
-                const viewWidth = scrollContainer.clientWidth - LEFT_COL_WIDTH;
+                const viewWidth = scrollContainer.clientWidth - leftColWidth();
                 const centerX = scrollContainer.scrollLeft + viewWidth / 2;
                 const centerFraction = centerX / oldWidth;
 
@@ -931,7 +931,7 @@
 
                 // Preserve viewport center
                 const oldWidth = getScaledWidth();
-                const viewWidth = scrollContainer.clientWidth - LEFT_COL_WIDTH;
+                const viewWidth = scrollContainer.clientWidth - leftColWidth();
                 const centerX = scrollContainer.scrollLeft + viewWidth / 2;
                 const centerFraction = centerX / oldWidth;
 
@@ -962,7 +962,7 @@
             function showAllProjects() {
                 const scrollContainer = document.getElementById('view-timeline');
                 if (!scrollContainer) return;
-                const viewWidth = scrollContainer.clientWidth - LEFT_COL_WIDTH;
+                const viewWidth = scrollContainer.clientWidth - leftColWidth();
                 currentScale = Math.max(0.1, viewWidth / FULL_WIDTH_AT_100);
                 applyZoomLayout();
                 scrollContainer.scrollLeft = 0;
@@ -1532,48 +1532,63 @@
                 const tooltip = document.getElementById('seg-tooltip');
                 if (!tooltip) return;
 
-                function buildHtml(el) {
-                    const hoursParts = [];
-                    if (el.dataset.dayHours !== '') hoursParts.push(`日班 <b>${el.dataset.dayHours}</b>`);
-                    if (el.dataset.otHours !== '') hoursParts.push(`加班 <b>${el.dataset.otHours}</b>`);
-                    if (el.dataset.nightHours !== '') hoursParts.push(`夜班 <b>${el.dataset.nightHours}</b>`);
-                    const hoursRow = hoursParts.length
-                        ? `<div class="tt-row">時數：${hoursParts.join(' / ')}（合計 <b>${el.dataset.totalHours}</b>）</div>` : '';
-                    const descRow = el.dataset.desc
-                        ? `<div class="tt-row" style="margin-top:4px;">${el.dataset.desc}</div>` : '';
-                    const resignedRow = el.dataset.resigned
-                        ? `<div class="tt-row" style="color:#fda4af;">已辭職：<b style="color:#fecdd3;">${el.dataset.resigned}</b></div>` : '';
-                    return `
-                        <div class="tt-title">${el.dataset.personnel || ''}</div>
-                        ${resignedRow}
-                        <div class="tt-row">專案：<b>${el.dataset.proj || ''}</b></div>
-                        <div class="tt-row">日期：<b>${el.dataset.date || '-'}</b></div>
-                        ${hoursRow}
-                        ${descRow}`;
+                let current = null;
+
+                function el(tag, cls, text) {
+                    const n = document.createElement(tag);
+                    if (cls) n.className = cls;
+                    if (text) n.textContent = text;
+                    return n;
+                }
+
+                function fill(seg) {
+                    tooltip.replaceChildren(el('div', 'tt-title', seg.dataset.date || '-'));
+                    JSON.parse(seg.dataset.entries || '[]').forEach(entry => {
+                        const box = el('div', 'tt-entry');
+                        const who = el('div', 'tt-row');
+                        who.appendChild(el('b', '', entry.personnel));
+                        if (entry.resigned) who.appendChild(el('span', '', `（已辭職 ${entry.resigned}）`)).style.color = '#fda4af';
+                        box.appendChild(who);
+                        if (entry.desc) box.appendChild(el('div', 'tt-row tt-desc', entry.desc));
+                        tooltip.appendChild(box);
+                    });
                 }
 
                 function position(e) {
-                    const pad = 14;
+                    const pad = 14, edge = 8;
+                    const rect = tooltip.getBoundingClientRect();
                     let x = e.clientX + pad;
                     let y = e.clientY + pad;
-                    const rect = tooltip.getBoundingClientRect();
-                    if (x + rect.width > window.innerWidth) x = e.clientX - rect.width - pad;
-                    if (y + rect.height > window.innerHeight) y = e.clientY - rect.height - pad;
-                    tooltip.style.left = x + 'px';
-                    tooltip.style.top = y + 'px';
+                    if (x + rect.width > window.innerWidth - edge) x = e.clientX - rect.width - pad;
+                    if (y + rect.height > window.innerHeight - edge) y = e.clientY - rect.height - pad;
+                    tooltip.style.left = Math.max(edge, Math.min(x, window.innerWidth - rect.width - edge)) + 'px';
+                    tooltip.style.top = Math.max(edge, y) + 'px';
+                }
+
+                function show(seg, e) {
+                    fill(seg);
+                    tooltip.style.display = 'block';
+                    current = seg;
+                    position(e);
+                }
+
+                function hide() {
+                    tooltip.style.display = 'none';
+                    current = null;
                 }
 
                 document.querySelectorAll('.task-segment').forEach(seg => {
-                    seg.addEventListener('mouseenter', function (e) {
-                        tooltip.innerHTML = buildHtml(this);
-                        tooltip.style.display = 'block';
-                        position(e);
-                    });
-                    seg.addEventListener('mousemove', position);
-                    seg.addEventListener('mouseleave', function () {
-                        tooltip.style.display = 'none';
+                    // Hover for mouse; touch devices get the click handler below
+                    seg.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') show(this, e); });
+                    seg.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse') position(e); });
+                    seg.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') hide(); });
+                    seg.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        if (current === this && e.pointerType !== 'mouse') hide(); else show(this, e);
                     });
                 });
+                document.addEventListener('click', hide);
+                document.getElementById('view-timeline').addEventListener('scroll', hide, { passive: true });
             }
 
             // =============================================

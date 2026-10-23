@@ -21,6 +21,25 @@ class TimelineFilterTests(UiTestCase):
         self.assertNotIn('A<b>&"x', html)  # name must be HTML-escaped
         self.assertIn('A&lt;b&gt;&amp;&#34;x', html)
 
+    def test_timeline_merges_same_day_tasks_without_hours(self):
+        import json, re, html as html_lib
+        from core.models import Project, Task
+        with self.app.app_context():
+            proj = Project(name='P', status='進行中', category='c', rep='r', start_date=date(2025, 1, 1))
+            self.db.session.add(proj)
+            self.db.session.flush()
+            for person, d, desc in (('A', date(2025, 3, 4), '<script>x</script>'), ('B', date(2025, 3, 4), 'y'),
+                                    ('A', date(2025, 3, 5), 'z')):
+                self.db.session.add(Task(personnel=person, date=d, day_hours=8, description=desc, project_id=proj.id))
+            self.db.session.commit()
+        page = self.admin_client().get('/timeline').get_data(as_text=True)
+        entries = [json.loads(html_lib.unescape(m)) for m in re.findall(r'data-entries="([^"]*)"', page)]
+        self.assertEqual([[e['personnel'] for e in es] for es in entries], [['A', 'B'], ['A']])
+        self.assertEqual(entries[0][0]['desc'], '<script>x</script>')
+        self.assertNotIn('<script>x</script>', page)
+        self.assertNotIn('data-total-hours', page)
+        self.assertIn('A、B', page)
+
 
 class ProjectDetailFilterTests(UiTestCase):
     def test_task_log_has_period_filter_highlight_and_row_dates(self):
